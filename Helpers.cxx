@@ -9,6 +9,20 @@
 
 namespace Helpers
 {
+
+void NormalizeVector(std::vector<float> &vec)
+{
+  float sum = 0.;
+  for(unsigned int i = 0; i < vec.size(); i++)
+    {
+    sum += vec[i];
+    }
+  for(unsigned int i = 0; i < vec.size(); i++)
+    {
+    vec[i] /= sum;
+    }
+}
+
 void AddNoise(IntImageType::Pointer image, float percentToFlip)
 {
   // eg. percentToFlip is .9 if 90% of pixels should be flipped

@@ -78,6 +78,16 @@ void MessageVector::OutputAllMessageValues() const
   std::cout << " }" << std::endl;
 }
 
+std::vector<float> MessageVector::GetAllMessageValues() const
+{
+  std::vector<float> values;
+  for(unsigned int i = 0; i < this->Messages.size(); i++)
+    {
+    values.push_back(this->Messages[i].Value);
+    }
+  return values;
+}
+
 std::ostream& operator<<(std::ostream& output, const MessageVector &messageVector)
 {
   output << "MessageVector: " << std::endl

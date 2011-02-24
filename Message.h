@@ -38,6 +38,7 @@ struct MessageVector
 
   void OutputMessage(const unsigned int i) const;
   void OutputAllMessageValues() const;
+  std::vector<float> GetAllMessageValues() const;
 
   void AddMessage(Message);
 };

@@ -56,7 +56,7 @@ float BinaryDenoising::BinaryCost(int label1, int label2)
   else
     {
     //cost = 1;
-    cost = 100.;
+    cost = 50.;
     }
   return cost;
   //return exp(-cost);

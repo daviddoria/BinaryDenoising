@@ -3,6 +3,7 @@
 #include "Helpers.h"
 
 #include "itkImageRegionIterator.h"
+#include "itkIntensityWindowingImageFilter.h"
 
 #include <vector>
 
@@ -11,6 +12,46 @@ LoopyBP<T>::LoopyBP()
 {
   this->Image = NULL;
   this->OutgoingMessageImage = NULL;
+}
+
+template <typename T>
+void LoopyBP<T>::WriteBeliefImage(std::string filename)
+{
+  FloatImageType::Pointer beliefImage = FloatImageType::New();
+  beliefImage->SetRegions(this->OutgoingMessageImage->GetLargestPossibleRegion());
+  beliefImage->Allocate();
+
+  itk::Size<2> imageSize = beliefImage->GetLargestPossibleRegion().GetSize();
+
+  for(unsigned int i = 0; i < imageSize[0]; i++)
+    {
+    for(unsigned int j = 0; j < imageSize[1]; j++)
+      {
+      std::vector<float> beliefs(this->LabelSet.size());
+      itk::Index<2> index;
+      index[0] = i;
+      index[1] = j;
+      for(unsigned int l = 0; l < this->LabelSet.size(); l++)
+        {
+        float belief = Belief(index, l);
+        beliefs[l] = belief;
+        }
+      Helpers::NormalizeVector(beliefs);
+      beliefImage->SetPixel(index, beliefs[1]); // the probability of "white pixel"
+      }// end for j
+    }// end for i
+
+  typedef itk::IntensityWindowingImageFilter <FloatImageType, IntImageType> IntensityWindowingImageFilterType;
+
+  IntensityWindowingImageFilterType::Pointer filter = IntensityWindowingImageFilterType::New();
+  filter->SetInput(beliefImage);
+  filter->SetWindowMinimum(0);
+  filter->SetWindowMaximum(1);
+  filter->SetOutputMinimum(0);
+  filter->SetOutputMaximum(255);
+  filter->Update();
+
+  Helpers::WriteImage<IntImageType>(filter->GetOutput(), filename);
 }
 
 template <typename T>
@@ -36,7 +77,7 @@ void LoopyBP<T>::CreateAndInitializeMessages(const float defaultMessageValue)
 
   while(!imageIterator.IsAtEnd())
     {
-    std::vector<itk::Index<2> > neighbors = Helpers::GetNeighbors<MessageImageType>(this->OutgoingMessageImage, imageIterator.GetIndex());
+    std::vector<itk::Index<2> > neighbors = Helpers::Get4Neighbors<MessageImageType>(this->OutgoingMessageImage, imageIterator.GetIndex());
     std::vector<MessageVector> messageVectors;
 
     for(unsigned int i = 0; i < neighbors.size(); i++) // add a message to each neighbor
@@ -235,7 +276,7 @@ float LoopyBP<T>::Belief(const itk::Index<2> node, const int label)
 
   //std::cout << "product: " << product << std::endl;
 
-  float belief = unary * product;
+  float belief = exp(-unary) * product;
   return belief;
 }
 
@@ -247,11 +288,65 @@ IntImageType::Pointer LoopyBP<T>::GetResult()
   while(!imageIterator.IsAtEnd())
     {
     int label = FindLabelWithHighestBelief(imageIterator.GetIndex());
+    //std::cout << "Highest belief for " << imageIterator.GetIndex() << " is " << label << std::endl;
     imageIterator.Set(label);
     ++imageIterator;
     }
 
   return this->Image;
+}
+
+template <typename T>
+void LoopyBP<T>::OutputBeliefImage()
+{
+  itk::Size<2> imageSize = this->OutgoingMessageImage->GetLargestPossibleRegion().GetSize();
+
+  for(unsigned int i = 0; i < imageSize[0]; i++)
+    {
+    for(unsigned int j = 0; j < imageSize[1]; j++)
+      {
+      std::vector<float> beliefs(this->LabelSet.size());
+      itk::Index<2> index;
+      index[0] = i;
+      index[1] = j;
+      for(unsigned int l = 0; l < this->LabelSet.size(); l++)
+        {
+        float belief = Belief(index, l);
+        beliefs[l] = belief;
+        }
+      Helpers::NormalizeVector(beliefs);
+      Helpers::OutputVector<float>(beliefs);
+      }// end for j
+      std::cout << std::endl;
+    }// end for i
+  std::cout << std::endl;
+}
+
+
+template <typename T>
+void LoopyBP<T>::OutputMessageImage()
+{
+
+  itk::Size<2> imageSize = this->OutgoingMessageImage->GetLargestPossibleRegion().GetSize();
+
+  for(unsigned int i = 0; i < imageSize[0]; i++)
+    {
+    for(unsigned int j = 0; j < imageSize[1]; j++)
+      {
+      itk::Index<2> index;
+      index[0] = i;
+      index[1] = j;
+      std::vector<MessageVector> messageVectors = this->OutgoingMessageImage->GetPixel(index);
+      for(unsigned int neighbor = 0; neighbor < messageVectors.size(); neighbor++)
+        {
+        std::vector<float> values = messageVectors[neighbor].GetAllMessageValues();
+        Helpers::OutputVector<float>(values);
+        }
+      std::cout << " ";
+      }// end for j
+      std::cout << std::endl;
+    }// end for i
+  std::cout << std::endl;
 }
 
 template <typename T>
@@ -355,7 +450,7 @@ template <typename T>
 std::vector<Message*> LoopyBP<T>::GetIncomingMessagesWithLabel(const itk::Index<2> node, const int label)
 {
   std::vector<Message*> incomingMessages;
-  std::vector<itk::Index<2> > neighbors = Helpers::GetNeighbors<MessageImageType>(this->OutgoingMessageImage, node);
+  std::vector<itk::Index<2> > neighbors = Helpers::Get4Neighbors<MessageImageType>(this->OutgoingMessageImage, node);
   for(unsigned int i = 0; i < neighbors.size(); i++)
     {
     MessageVector& messageVector = GetMessages(neighbors[i], node); // Get incoming messages

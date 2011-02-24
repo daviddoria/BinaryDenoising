@@ -15,7 +15,21 @@ template<typename T>
 void WriteImage(typename T::Pointer image, std::string filename);
 
 template<typename T>
-std::vector<itk::Index<2> > GetNeighbors(typename T::Pointer image, itk::Index<2> pixel);
+void WriteBinaryImage(typename T::Pointer image, std::string filename);
+
+template<typename T>
+void ConvertToBinaryImage(typename T::Pointer image, IntImageType::Pointer binary);
+
+template<typename T>
+std::vector<itk::Index<2> > Get8Neighbors(typename T::Pointer image, itk::Index<2> pixel);
+
+template<typename T>
+std::vector<itk::Index<2> > Get4Neighbors(typename T::Pointer image, itk::Index<2> pixel);
+
+template<typename T>
+void OutputVector(std::vector<T> vec);
+
+void NormalizeVector(std::vector<float> &vec);
 
 }
 

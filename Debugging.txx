@@ -6,7 +6,7 @@ namespace Debugging
 template<typename T>
 unsigned int CountNeighborsWithSameValue(typename T::Pointer image, itk::Index<2> pixel)
 {
-  std::vector<itk::Index<2> > neighbors = Helpers::GetNeighbors<T>(image, pixel);
+  std::vector<itk::Index<2> > neighbors = Helpers::Get4Neighbors<T>(image, pixel);
 
   unsigned int count = 0;
 
@@ -23,7 +23,7 @@ unsigned int CountNeighborsWithSameValue(typename T::Pointer image, itk::Index<2
 template<typename T>
 unsigned int CountNeighborsWithDifferentValue(typename T::Pointer image, itk::Index<2> pixel)
 {
-  std::vector<itk::Index<2> > neighbors = Helpers::GetNeighbors<T>(image, pixel);
+  std::vector<itk::Index<2> > neighbors = Helpers::Get4Neighbors<T>(image, pixel);
 
   unsigned int count = 0;
 

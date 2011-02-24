@@ -3,7 +3,8 @@
 
 #include "Types.h"
 #include "Message.h"
-#include "RasterUpdateSchedule.h"
+#include "RasterOneNeighborUpdateSchedule.h"
+#include "RandomUpdateSchedule.h"
 
 template <typename TImage>
 class LoopyBP
@@ -22,11 +23,16 @@ public:
   void OutputMessagesBetweenNodes(const itk::Index<2> FromNode, const itk::Index<2> ToNode);
 
   // These should be protected, but are public for testing
-  RasterUpdateSchedule Schedule;
+  //RasterOneNeighborUpdateSchedule Schedule;
+  RandomUpdateSchedule Schedule;
+
   bool SumProductMessageUpdate(MessageVector& messageVector);
   bool MaxProductMessageUpdate(MessageVector& messageVector);
   bool MinSumMessageUpdate(MessageVector& messageVector); // since this is the log domain, must initialize messages to 0 instead of 1
 
+  void OutputBeliefImage();
+  void OutputMessageImage();
+  void WriteBeliefImage(std::string filename);
 
 protected:
 

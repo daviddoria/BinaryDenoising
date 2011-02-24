@@ -25,16 +25,28 @@ int main(int argc, char *argv[])
   binaryDenoising.CreateAndInitializeMessages(1.0);
   //binaryDenoising.CreateAndInitializeMessages(0.0);
 
+  std::cout << "Initializations:" << std::endl;
+
+  binaryDenoising.OutputBeliefImage();
+  //binaryDenoising.OutputMessageImage();
+
   unsigned int numberOfIterations = 100;
   for(unsigned int i = 0; i < numberOfIterations; i++) // since we are using the raster schedule, one iteration is simply one message
     {
     binaryDenoising.Iterate();
 
+    std::cout << "Iteration " << i << std::endl;
+    binaryDenoising.OutputBeliefImage();
+    //binaryDenoising.OutputMessageImage();
+
+    /*
     std::stringstream filename;
     filename << "result_" << std::setfill('0') << std::setw(5) << i << ".png";
     Helpers::WriteImage<IntImageType>(binaryDenoising.GetResult(), filename.str());
-
+    */
     }
+
+  Helpers::WriteBinaryImage<IntImageType>(binaryDenoising.GetResult(), "result.png");
 
   return EXIT_SUCCESS;
 }
