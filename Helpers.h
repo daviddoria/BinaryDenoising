@@ -12,7 +12,11 @@ template<typename T>
 void DeepCopy(typename T::Pointer inputImage, typename T::Pointer outputImage);
 
 template<typename T>
-void WriteImage(typename T::Pointer image, std::string filename);
+void WriteScaledImage(typename T::Pointer image, std::string filename);
+
+template<typename T>
+void WriteCastedImage(typename T::Pointer image, std::string filename);
+
 
 template<typename T>
 void WriteBinaryImage(typename T::Pointer image, std::string filename);

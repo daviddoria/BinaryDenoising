@@ -1,17 +1,16 @@
-#include "BinaryDenoising.h"
+#include "GrayscaleInpainting.h"
 
-BinaryDenoising::BinaryDenoising()
+GrayscaleInpainting::GrayscaleInpainting()
 {
-  this->BinaryPenalty = 50;
   this->Observations = NULL;
 }
 
-void BinaryDenoising::SetBinaryPenalty(float penalty)
+IntImageType::Pointer GrayscaleInpainting::GetObservations()
 {
- this->BinaryPenalty = penalty;
+  return this->Observations;
 }
 
-void BinaryDenoising::SetObservations(IntImageType::Pointer observations)
+void GrayscaleInpainting::SetObservations(IntImageType::Pointer observations)
 {
   // Setup observations
   if(!this->Observations)
@@ -31,7 +30,7 @@ void BinaryDenoising::SetObservations(IntImageType::Pointer observations)
 }
 
 
-float BinaryDenoising::UnaryCost(int label, itk::Index<2> pixel)
+float GrayscaleInpainting::UnaryCost(int label, itk::Index<2> pixel)
 {
   float cost = 0.0;
   if(label == this->Observations->GetPixel(pixel))
@@ -46,17 +45,9 @@ float BinaryDenoising::UnaryCost(int label, itk::Index<2> pixel)
   return cost;
 }
 
-float BinaryDenoising::BinaryCost(int label1, int label2)
+float GrayscaleInpainting::BinaryCost(int label1, int label2)
 {
-  float cost = 0.0;
+  float cost = abs(label1-label2);
 
-  if(label1 == label2)
-    {
-    cost = 0.;
-    }
-  else
-    {
-    cost = this->BinaryPenalty;
-    }
   return cost;
 }

@@ -5,6 +5,10 @@
 #include "itkImageRegionIterator.h"
 #include "itkIntensityWindowingImageFilter.h"
 
+#include "RandomUniqueUpdateSchedule.h"
+#include "RasterOneNeighborUpdateSchedule.h"
+#include "RandomUpdateSchedule.h"
+
 #include <vector>
 
 template <typename T>
@@ -12,6 +16,57 @@ LoopyBP<T>::LoopyBP()
 {
   this->Image = NULL;
   this->OutgoingMessageImage = NULL;
+  this->Schedule = NULL;
+  this->UpdateType = SUMPRODUCT;
+}
+
+template <typename T>
+IntImageType::Pointer LoopyBP<T>::GetImage()
+{
+  return this->Image;
+}
+
+template <typename T>
+void LoopyBP<T>::SetUpdateToSumProduct()
+{
+  this->UpdateType = SUMPRODUCT;
+}
+
+template <typename T>
+void LoopyBP<T>::SetUpdateToMaxProduct()
+{
+  this->UpdateType = MAXPRODUCT;
+}
+
+template <typename T>
+void LoopyBP<T>::SetUpdateToMinSum()
+{
+  this->UpdateType = MINSUM;
+}
+
+template <typename T>
+void LoopyBP<T>::SetScheduleToRandom()
+{
+  this->Schedule = new RandomUpdateSchedule;
+}
+
+template <typename T>
+void LoopyBP<T>::SetScheduleToRandomUnique()
+{
+  this->Schedule = new RandomUniqueUpdateSchedule;
+}
+
+template <typename T>
+void LoopyBP<T>::SetScheduleToRasterOneNeighbor()
+{
+  this->Schedule = new RasterOneNeighborUpdateSchedule;
+}
+
+template <typename T>
+void LoopyBP<T>::Initialize()
+{
+  this->Schedule->SetOutgoingMessageImage(this->OutgoingMessageImage);
+  this->Schedule->Initialize();
 }
 
 template <typename T>
@@ -51,15 +106,22 @@ void LoopyBP<T>::WriteBeliefImage(std::string filename)
   filter->SetOutputMaximum(255);
   filter->Update();
 
-  Helpers::WriteImage<IntImageType>(filter->GetOutput(), filename);
+  Helpers::WriteScaledImage<IntImageType>(filter->GetOutput(), filename);
 }
 
 template <typename T>
 void LoopyBP<T>::CreateBinaryLabelSet()
 {
+  std::cout << "Creating binary label set..." << std::endl;
   this->LabelSet.clear();
   this->LabelSet.push_back(0);
   this->LabelSet.push_back(1);
+}
+
+template <typename T>
+void LoopyBP<T>::SetLabelSet(std::vector<int> labelSet)
+{
+  this->LabelSet = labelSet;
 }
 
 template <typename T>
@@ -107,17 +169,27 @@ void LoopyBP<T>::CreateAndInitializeMessages(const float defaultMessageValue)
     ++imageIterator;
     }
 
-  this->Schedule.SetOutgoingMessageImage(this->OutgoingMessageImage);
-  this->Schedule.Initialize();
 }
 
 template <typename T>
 bool LoopyBP<T>::Iterate()
 {
   // Determine which message to update (following the schedule)
-  MessageVector& messageVector = this->Schedule.NextMessage(); // The message is returned by reference
+  MessageVector& messageVector = this->Schedule->NextMessage(); // The message is returned by reference
 
-  SumProductMessageUpdate(messageVector);
+  if(this->UpdateType == SUMPRODUCT)
+    {
+    //std::cout << "Using SumProductMessageUpdate" << std::endl;
+    SumProductMessageUpdate(messageVector);
+    }
+  if(this->UpdateType == MAXPRODUCT)
+    {
+    MaxProductMessageUpdate(messageVector);
+    }
+  if(this->UpdateType == MINSUM)
+    {
+    MinSumMessageUpdate(messageVector);
+    }
 
   return false; // Not yet converged
 }
@@ -128,7 +200,7 @@ bool LoopyBP<T>::SumProductMessageUpdate(MessageVector& messageVector)
   // This function returns true if nothing changed (converged) (Convergence checking is not yet implemented, so it always returns false at the moment)
 
   // Message update equation
-  // m_{ij}(l) = \sum_{p \in L} \left[ B(L(p), L(l)) U(L(p)) \prod_{k=N(i)\backslash j} \left( m_{ki}(L(p)) \right) \right]
+  // m_{ij}(l) = \sum_{p \in L} \left[ B(L(p), L(l)) U(L(p)) \prod_{k=N(i)\backslash j} m_{ki}(L(p)) \right]
 
   for(unsigned int l = 0; l < messageVector.GetNumberOfMessages(); l++)
     {
@@ -166,84 +238,79 @@ bool LoopyBP<T>::SumProductMessageUpdate(MessageVector& messageVector)
 
 
 template <typename T>
-bool LoopyBP<T>::MaxProductMessageUpdate(MessageVector& m)
+bool LoopyBP<T>::MaxProductMessageUpdate(MessageVector& messageVector)
 {
-#if 0
-  // This function returns true if nothing changed (converged) (Convergence checking is not yet implemented, so it always returns false at the moment)
-
-  float max = 0.0;
-
-  for(unsigned int p = 0; p < this->LabelSet.size(); p++)
+  for(unsigned int l = 0; l < messageVector.GetNumberOfMessages(); l++)
     {
-    float unary = this->UnaryCost(p, m.FromNode);
-    float binary = this->BinaryCost(p, m.Label);
+    float maxValue = itk::NumericTraits<float>::min();
 
-    float product = 1.0;
-    //std::cout << "Getting messages with label (" << m.FromNode << " , " << p << ")" << std::endl;
-    std::vector<Message*> messages = GetMessagesWithLabel(m.FromNode, p);
-    for(unsigned int k = 0; k < messages.size(); k++)
+    for(unsigned int p = 0; p < this->LabelSet.size(); p++)
       {
-      product *= messages[k]->Value;
+      float unary = this->UnaryCost(this->LabelSet[p], messageVector.FromNode);
+      float binary = this->BinaryCost(this->LabelSet[p], messageVector.GetMessage(l).Label);
+
+      float product = 1.0;
+      //std::cout << "Getting messages with label (" << m.FromNode << " , " << p << ")" << std::endl;
+      std::vector<Message*> messages = GetIncomingMessagesWithLabel(messageVector.FromNode, this->LabelSet[p]);
+      for(unsigned int k = 0; k < messages.size(); k++)
+        {
+        product *= messages[k]->Value;
+        }
+      float current = exp(-unary) * exp(-binary) * product;
+      if(current > maxValue)
+        {
+        maxValue = current;
+        }
       }
-    float current = exp(-unary) * exp(-binary) * product;
-    if(current > max)
-      {
-      max = current;
-      }
+      messageVector.GetMessage(l).Value = maxValue;
     }
 
-  //std::cout << "Original message value: " << GetMessage(m.FromNode, m.ToNode,m .Label).Value << std::endl;
-  m.Value = max;
-
-  //std::cout << "New message value: " << GetMessage(m.FromNode, m.ToNode,m .Label).Value << std::endl;
-
-  NormalizeMessages(m.FromNode, m.ToNode);
+  messageVector.Normalize();
 
   //std::cout << "Normalized message value: " << GetMessage(m.FromNode, m.ToNode,m .Label).Value << std::endl;
   //std::cout << std::endl;
 
-#endif
   return false; // Not yet converged
 }
 
 
 template <typename T>
-bool LoopyBP<T>::MinSumMessageUpdate(MessageVector& m)
+bool LoopyBP<T>::MinSumMessageUpdate(MessageVector& messageVector)
 {
-#if 0
+
   // This function returns true if nothing changed (converged) (Convergence checking is not yet implemented, so it always returns false at the moment)
-
-  float min = itk::NumericTraits<float>::max();
-
-  for(unsigned int p = 0; p < this->LabelSet.size(); p++)
+  for(unsigned int l = 0; l < messageVector.GetNumberOfMessages(); l++)
     {
-    float unary = this->UnaryCost(p, m.FromNode);
-    float binary = this->BinaryCost(p, m.Label);
+    float minValue = itk::NumericTraits<float>::max();
 
-    float sum = 0.0;
-    //std::cout << "Getting messages with label (" << m.FromNode << " , " << p << ")" << std::endl;
-    std::vector<Message*> messages = GetMessagesWithLabel(m.FromNode, p);
-    for(unsigned int k = 0; k < messages.size(); k++)
+    for(unsigned int p = 0; p < this->LabelSet.size(); p++)
       {
-      sum += messages[k]->Value;
+      float unary = this->UnaryCost(this->LabelSet[p], messageVector.FromNode);
+      float binary = this->BinaryCost(this->LabelSet[p], messageVector.GetMessage(l).Label);
+
+      float sum = 0.0;
+      //std::cout << "Getting messages with label (" << m.FromNode << " , " << p << ")" << std::endl;
+      std::vector<Message*> messages = GetIncomingMessagesWithLabel(messageVector.FromNode, this->LabelSet[p]);
+      for(unsigned int k = 0; k < messages.size(); k++)
+        {
+        sum += messages[k]->Value;
+        }
+      float current = unary + binary + sum;
+      if(current < minValue)
+        {
+        minValue = current;
+        }
       }
-    float current = unary + binary + sum;
-    if(current < min)
-      {
-      min = current;
-      }
+    messageVector.GetMessage(l).Value = minValue;
     }
-
-  //std::cout << "Original message value: " << GetMessage(m.FromNode, m.ToNode,m .Label).Value << std::endl;
-  m.Value = min;
 
   //std::cout << "New message value: " << GetMessage(m.FromNode, m.ToNode,m .Label).Value << std::endl;
 
-  NormalizeMessages(m.FromNode, m.ToNode);
+  messageVector.Normalize();
 
   //std::cout << "Normalized message value: " << GetMessage(m.FromNode, m.ToNode,m .Label).Value << std::endl;
   //std::cout << std::endl;
-#endif
+
   return false; // Not yet converged
 }
 

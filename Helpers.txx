@@ -1,6 +1,7 @@
 #include "itkNeighborhoodIterator.h"
 #include "itkRescaleIntensityImageFilter.h"
 #include "itkImageFileWriter.h"
+#include "itkCastImageFilter.h"
 
 #include <iomanip>
 
@@ -128,7 +129,22 @@ std::vector<itk::Index<2> > Get4Neighbors(typename T::Pointer image, itk::Index<
 }
 
 template<typename T>
-void WriteImage(typename T::Pointer image, std::string filename)
+void WriteCastedImage(typename T::Pointer image, std::string filename)
+{
+  typedef itk::CastImageFilter< T, UnsignedCharImageType > CastFilterType;
+  typename CastFilterType::Pointer castFilter = CastFilterType::New();
+  castFilter->SetInput(image);
+  castFilter->Update();
+  
+  typedef  itk::ImageFileWriter< UnsignedCharImageType > WriterType;
+  WriterType::Pointer writer = WriterType::New();
+  writer->SetFileName(filename);
+  writer->SetInput(castFilter->GetOutput());
+  writer->Update();
+}
+
+template<typename T>
+void WriteScaledImage(typename T::Pointer image, std::string filename)
 {
   typedef itk::Image< unsigned char, 2> UnsignedCharImageType;
 

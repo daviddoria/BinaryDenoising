@@ -4,7 +4,6 @@
 #include "itkIndex.h"
 
 #include <vector>
-#include <boost/graph/graph_concepts.hpp>
 
 // This class represents a single message between a pair of nodes.
 // As an example, the message m_{2,5}(3) (i.e. the message from node 2 to node 5 about label 3)

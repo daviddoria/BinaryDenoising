@@ -27,19 +27,23 @@ int main(int argc, char *argv[])
   binaryDenoising.SetObservations(binaryImage);
   binaryDenoising.CreateBinaryLabelSet();
 
+  //binaryDenoising.SetScheduleToRandom();
+  binaryDenoising.SetScheduleToRandomUnique();
+  //binaryDenoising.SetScheduleToRasterOneNeighbor();
+
+  binaryDenoising.SetUpdateToSumProduct();
+
+
+  binaryDenoising.SetBinaryPenalty(1.);
   binaryDenoising.CreateAndInitializeMessages(1.0);
-  //binaryDenoising.CreateAndInitializeMessages(0.0);
-
-  std::cout << "Initializations:" << std::endl;
-
-  //binaryDenoising.OutputBeliefImage();
-  //binaryDenoising.OutputMessageImage();
+  binaryDenoising.Initialize();
 
   unsigned int numberOfPixels = binaryImage->GetLargestPossibleRegion().GetNumberOfPixels();
-  unsigned int numberOfIterations = 50000;
-  //unsigned int numberOfIterations = numberOfPixels * 10 * 8 * 2; // 8 neighbors on average, 2 messages per neighbor, 10 full iterations
-  unsigned int fullPassCounter = 0;
+  unsigned int iterationsPerPass = numberOfPixels * 4 * 2; // 4 neighbors per pixel (approximately) and 2 messages per neighbor
 
+  unsigned int numberOfPasses = 5;
+
+  unsigned int numberOfIterations = numberOfPasses * iterationsPerPass;
   for(unsigned int i = 0; i < numberOfIterations; i++) // since we are using the raster schedule, one iteration is simply one message
     {
     //std::cout << "Performing iteration " << i << "..." << std::endl;
@@ -52,6 +56,7 @@ int main(int argc, char *argv[])
     binaryDenoising.WriteBeliefImage(filename.str());
 */
 
+/*
     if((i % (numberOfPixels * 4 * 2) == 0) && (i > 0))
       {
       std::cout << "Full pass " << fullPassCounter << std::endl;
@@ -60,22 +65,10 @@ int main(int argc, char *argv[])
       ++fullPassCounter;
       Helpers::WriteImage<IntImageType>(binaryDenoising.GetResult(), filename.str());
       }
-
+*/
     }
 
-  Helpers::WriteImage<IntImageType>(binaryDenoising.GetResult(), "result.png");
-
-  /*
-  unsigned int numberOfIterations = 1e3;
-  for(unsigned int i = 0; i < numberOfIterations; i++) // since we are using the raster schedule, one iteration is simply one message
-    {
-    //binaryDenoising.SumProduct();
-    //binaryDenoising.MaxProduct();
-    binaryDenoising.Iterate();
-    }
-
-  Helpers::WriteImage<IntImageType>(binaryDenoising.GetResult(), "result.png");
-  */
+  Helpers::WriteBinaryImage<IntImageType>(binaryDenoising.GetResult(), "result.png");
 
   return EXIT_SUCCESS;
 }

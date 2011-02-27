@@ -3,13 +3,13 @@
 
 #include "Types.h"
 #include "Message.h"
-#include "RasterOneNeighborUpdateSchedule.h"
-#include "RandomUpdateSchedule.h"
+#include "UpdateSchedule.h"
 
 template <typename TImage>
 class LoopyBP
 {
 public:
+
   LoopyBP();
 
   bool Iterate();
@@ -18,13 +18,25 @@ public:
 
   void CreateBinaryLabelSet(); // Create a label set of {0,1}
 
+  void SetLabelSet(std::vector<int>);
+
   void CreateAndInitializeMessages(const float defaultMessageValue);
+
+  void Initialize();
 
   void OutputMessagesBetweenNodes(const itk::Index<2> FromNode, const itk::Index<2> ToNode);
 
   // These should be protected, but are public for testing
-  //RasterOneNeighborUpdateSchedule Schedule;
-  RandomUpdateSchedule Schedule;
+  UpdateSchedule* Schedule;
+  void SetScheduleToRandom();
+  void SetScheduleToRandomUnique();
+  void SetScheduleToRasterOneNeighbor();
+
+  enum UpdateTypeEnum { SUMPRODUCT, MAXPRODUCT, MINSUM};
+  UpdateTypeEnum UpdateType;
+  void SetUpdateToSumProduct();
+  void SetUpdateToMaxProduct();
+  void SetUpdateToMinSum();
 
   bool SumProductMessageUpdate(MessageVector& messageVector);
   bool MaxProductMessageUpdate(MessageVector& messageVector);
@@ -33,6 +45,8 @@ public:
   void OutputBeliefImage();
   void OutputMessageImage();
   void WriteBeliefImage(std::string filename);
+
+  IntImageType::Pointer GetImage();
 
 protected:
 

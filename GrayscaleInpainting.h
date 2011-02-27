@@ -1,21 +1,21 @@
-#ifndef BINARYDENOISING_H
-#define BINARYDENOISING_H
+#ifndef GRAYSCALEINPAINTING_H
+#define GRAYSCALEINPAINTING_H
 
 #include "LoopyBP.h"
 
-class BinaryDenoising : public LoopyBP<IntImageType>
+class GrayscaleInpainting : public LoopyBP<IntImageType>
 {
 public:
-  BinaryDenoising();
+  GrayscaleInpainting();
 
   void SetObservations(IntImageType::Pointer);
-  void SetBinaryPenalty(float);
+
+  IntImageType::Pointer GetObservations();
 
 private:
   float UnaryCost(int label, itk::Index<2> pixel);
   float BinaryCost(int label1, int label2);
 
-  float BinaryPenalty;
 
   IntImageType::Pointer Observations;
 };
