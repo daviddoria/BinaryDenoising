@@ -2,27 +2,27 @@
 
 RasterAllNeighborsUpdateSchedule::RasterAllNeighborsUpdateSchedule()
 {
-  this->currentMessageVectorId = 0;
+  this->CurrentMessageVectorId = 0;
 }
 
 void RasterAllNeighborsUpdateSchedule::Initialize()
 {
-  this->imageIterator = itk::ImageRegionConstIterator<MessageImageType> (this->OutgoingMessageImage,
-                                                                         this->OutgoingMessageImage->GetLargestPossibleRegion());
+  this->ImageIterator = itk::ImageRegionConstIterator<NodeImageType> (this->NodeImage,
+                                                                         this->NodeImage->GetLargestPossibleRegion());
 }
 
 MessageVector& RasterAllNeighborsUpdateSchedule::NextMessage()
 {
-  while(!this->imageIterator.IsAtEnd())
+  while(!this->ImageIterator.IsAtEnd())
     {
-    itk::Index<2> currentIndex = imageIterator.GetIndex();
-    MessageVector& messageVector = this->OutgoingMessageImage->GetPixel(currentIndex)[currentMessageVectorId];
+    itk::Index<2> currentIndex = this->ImageIterator.GetIndex();
+    MessageVector& messageVector = this->NodeImage->GetPixel(currentIndex).GetOutgoingMessageVector(this->CurrentMessageVectorId);
 
-    currentMessageVectorId++;
-    if(currentMessageVectorId >= this->OutgoingMessageImage->GetPixel(currentIndex).size())
+    this->CurrentMessageVectorId++;
+    if(this->CurrentMessageVectorId >= this->NodeImage->GetPixel(currentIndex).GetNumberOfNeighbors())
       {
-      currentMessageVectorId = 0;
-      ++imageIterator;
+      this->CurrentMessageVectorId = 0;
+      ++(this->ImageIterator);
       }
 
     return messageVector;
@@ -30,6 +30,6 @@ MessageVector& RasterAllNeighborsUpdateSchedule::NextMessage()
 
   // When we get to here, we have traversed the whole image. Start over:
   //std::cout << "Restart raster scan." << std::endl;
-  imageIterator.GoToBegin();
+  this->ImageIterator.GoToBegin();
   return NextMessage();
 }

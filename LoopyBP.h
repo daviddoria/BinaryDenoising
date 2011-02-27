@@ -59,8 +59,7 @@ protected:
 
   IntImageType::Pointer Image;
 
-  // OutgoingMessageImage stores a vector of Messages at each pixel which describes all of the messages originating at each pixel
-  MessageImageType::Pointer OutgoingMessageImage;
+  NodeImageType::Pointer NodeImage;
 
   std::vector<int> LabelSet;
 

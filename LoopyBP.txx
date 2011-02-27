@@ -15,7 +15,7 @@ template <typename T>
 LoopyBP<T>::LoopyBP()
 {
   this->Image = NULL;
-  this->OutgoingMessageImage = NULL;
+  this->NodeImage = NULL;
   this->Schedule = NULL;
   this->UpdateType = SUMPRODUCT;
 }
@@ -65,7 +65,7 @@ void LoopyBP<T>::SetScheduleToRasterOneNeighbor()
 template <typename T>
 void LoopyBP<T>::Initialize()
 {
-  this->Schedule->SetOutgoingMessageImage(this->OutgoingMessageImage);
+  this->Schedule->SetNodeImage(this->NodeImage);
   this->Schedule->Initialize();
 }
 
@@ -73,7 +73,7 @@ template <typename T>
 void LoopyBP<T>::WriteBeliefImage(std::string filename)
 {
   FloatImageType::Pointer beliefImage = FloatImageType::New();
-  beliefImage->SetRegions(this->OutgoingMessageImage->GetLargestPossibleRegion());
+  beliefImage->SetRegions(this->NodeImage->GetLargestPossibleRegion());
   beliefImage->Allocate();
 
   itk::Size<2> imageSize = beliefImage->GetLargestPossibleRegion().GetSize();
@@ -128,18 +128,18 @@ template <typename T>
 void LoopyBP<T>::CreateAndInitializeMessages(const float defaultMessageValue)
 {
   // For each pixel, create |L| messages to each neighboring pixel
-  if(!this->OutgoingMessageImage)
+  if(!this->NodeImage)
     {
-    this->OutgoingMessageImage = MessageImageType::New();
+    this->NodeImage = NodeImageType::New();
     }
-  this->OutgoingMessageImage->SetRegions(this->Image->GetLargestPossibleRegion());
-  this->OutgoingMessageImage->Allocate();
+  this->NodeImage->SetRegions(this->Image->GetLargestPossibleRegion());
+  this->NodeImage->Allocate();
 
-  itk::ImageRegionIterator<MessageImageType> imageIterator(this->OutgoingMessageImage, this->OutgoingMessageImage->GetLargestPossibleRegion());
+  itk::ImageRegionIterator<NodeImageType> imageIterator(this->NodeImage, this->NodeImage->GetLargestPossibleRegion());
 
   while(!imageIterator.IsAtEnd())
     {
-    std::vector<itk::Index<2> > neighbors = Helpers::Get4Neighbors<MessageImageType>(this->OutgoingMessageImage, imageIterator.GetIndex());
+    std::vector<itk::Index<2> > neighbors = Helpers::Get4Neighbors<NodeImageType>(this->NodeImage, imageIterator.GetIndex());
     std::vector<MessageVector> messageVectors;
 
     for(unsigned int i = 0; i < neighbors.size(); i++) // add a message to each neighbor
@@ -164,7 +164,9 @@ void LoopyBP<T>::CreateAndInitializeMessages(const float defaultMessageValue)
         }
       messageVectors.push_back(messageVector);
       }
-    imageIterator.Set(messageVectors);
+    Node node;
+    node.SetOutgoingMessages(messageVectors);
+    imageIterator.Set(node);
 
     ++imageIterator;
     }
@@ -486,7 +488,7 @@ Message& LoopyBP<T>::GetMessage(const itk::Index<2> fromNode, const itk::Index<2
 template <typename T>
 std::vector<Message*> LoopyBP<T>::GetMessages(const itk::Index<2> node)
 {
-  std::vector<Message>& outgoingMessages = this->OutgoingMessageImage->GetPixel(node);
+  std::vector<Message>& outgoingMessages = this->NodeImage->GetPixel(node);
   std::vector<Message*> messages;
 
   for(unsigned int i = 0; i < outgoingMessages.size(); i++)
@@ -499,13 +501,13 @@ std::vector<Message*> LoopyBP<T>::GetMessages(const itk::Index<2> node)
 template <typename T>
 MessageVector& LoopyBP<T>::GetMessages(const itk::Index<2> fromNode, const itk::Index<2> toNode)
 {
-  unsigned int numberOfMessageVectors = this->OutgoingMessageImage->GetPixel(fromNode).size();
+  unsigned int numberOfMessageVectors = this->NodeImage->GetPixel(fromNode).GetNumberOfNeighbors();
 
   for(unsigned int i = 0; i < numberOfMessageVectors; i++)
     {
-    if(this->OutgoingMessageImage->GetPixel(fromNode)[i].ToNode == toNode)
+    if(this->NodeImage->GetPixel(fromNode).GetOutgoingMessageVector(i).ToNode == toNode)
       {
-      return this->OutgoingMessageImage->GetPixel(fromNode)[i];
+      return this->NodeImage->GetPixel(fromNode).GetOutgoingMessageVector(i);
       }
     }
   std::cerr << "No MessageVector from " << fromNode << " to " << toNode << " exists!" << std::endl;
@@ -517,7 +519,7 @@ template <typename T>
 std::vector<Message*> LoopyBP<T>::GetIncomingMessagesWithLabel(const itk::Index<2> node, const int label)
 {
   std::vector<Message*> incomingMessages;
-  std::vector<itk::Index<2> > neighbors = Helpers::Get4Neighbors<MessageImageType>(this->OutgoingMessageImage, node);
+  std::vector<itk::Index<2> > neighbors = Helpers::Get4Neighbors<NodeImageType>(this->NodeImage, node);
   for(unsigned int i = 0; i < neighbors.size(); i++)
     {
     MessageVector& messageVector = GetMessages(neighbors[i], node); // Get incoming messages

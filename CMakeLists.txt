@@ -13,7 +13,7 @@ PROJECT(BeliefPropagation)
 # TARGET_LINK_LIBRARIES(TestBinaryDenoisingSynthetic ITKCommon ITKIO ITKBasicFilters)
 
 ADD_EXECUTABLE(TestBinaryDenoisingReal TestBinaryDenoisingReal.cxx
-BinaryDenoising.cxx
+BinaryDenoising.cxx Node.cxx MessageVector.cxx Comparisons.cxx
 UpdateSchedule.cxx RasterAllNeighborsUpdateSchedule.cxx RasterOneNeighborUpdateSchedule.cxx RandomUpdateSchedule.cxx RandomUniqueUpdateSchedule.cxx
 Message.cxx
 Helpers.cxx  Debugging.cxx)

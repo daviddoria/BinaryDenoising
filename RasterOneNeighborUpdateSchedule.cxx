@@ -2,41 +2,41 @@
 
 RasterOneNeighborUpdateSchedule::RasterOneNeighborUpdateSchedule()
 {
-  this->currentMessageVectorId = 0;
+  this->CurrentMessageVectorId = 0;
 }
 
 void RasterOneNeighborUpdateSchedule::Initialize()
 {
-  this->imageIterator = itk::ImageRegionConstIterator<MessageImageType> (this->OutgoingMessageImage,
-                                                                         this->OutgoingMessageImage->GetLargestPossibleRegion());
+  this->ImageIterator = itk::ImageRegionConstIterator<NodeImageType> (this->NodeImage,
+                                                                         this->NodeImage->GetLargestPossibleRegion());
 }
 
 MessageVector& RasterOneNeighborUpdateSchedule::NextMessage()
 {
-  while(!this->imageIterator.IsAtEnd())
+  while(!this->ImageIterator.IsAtEnd())
     {
-    itk::Index<2> currentIndex = imageIterator.GetIndex();
-    MessageVector& messageVector = this->OutgoingMessageImage->GetPixel(currentIndex)[currentMessageVectorId];
+    itk::Index<2> currentIndex = this->ImageIterator.GetIndex();
+    MessageVector& messageVector = this->NodeImage->GetPixel(currentIndex).GetOutgoingMessageVector(this->CurrentMessageVectorId);
 
-    if(this->currentMessageVectorId >= this->OutgoingMessageImage->GetPixel(currentIndex).size())
+    if(this->CurrentMessageVectorId >= this->NodeImage->GetPixel(currentIndex).GetNumberOfNeighbors())
       {
-      ++imageIterator;
+      ++(this->ImageIterator);
       continue;
       }
     //std::cout << "Processing message " << imageIterator.GetIndex() << " [" << currentMessageVectorId << "]" << std::endl;
-    ++imageIterator;
+    ++(this->ImageIterator);
     return messageVector;
     }
 
   // When we get to here, we have traversed the whole image. Start over:
   //std::cout << "Restart raster scan." << std::endl;
-  this->currentMessageVectorId++;
+  this->CurrentMessageVectorId++;
   unsigned int maxNeighbors = 4;
-  if(this->currentMessageVectorId == maxNeighbors)
+  if(this->CurrentMessageVectorId == maxNeighbors)
     {
-    this->currentMessageVectorId = 0;
+    this->CurrentMessageVectorId = 0;
     }
 
-  imageIterator.GoToBegin();
+  this->ImageIterator.GoToBegin();
   return NextMessage();
 }

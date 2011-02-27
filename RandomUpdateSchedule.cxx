@@ -7,21 +7,21 @@ RandomUpdateSchedule::RandomUpdateSchedule()
 
 void RandomUpdateSchedule::Initialize()
 {
-  this->randomIterator = itk::ImageRandomConstIteratorWithIndex<MessageImageType> (this->OutgoingMessageImage,
-                                                                                   this->OutgoingMessageImage->GetLargestPossibleRegion());
-  this->randomIterator.SetNumberOfSamples(1);
+  this->RandomIterator = itk::ImageRandomConstIteratorWithIndex<NodeImageType> (this->NodeImage,
+                                                                                   this->NodeImage->GetLargestPossibleRegion());
+  this->RandomIterator.SetNumberOfSamples(1);
 }
 
 MessageVector& RandomUpdateSchedule::NextMessage()
 {
-  this->randomIterator.GoToBegin();
-  itk::Index<2> randomIndex = this->randomIterator.GetIndex();
+  this->RandomIterator.GoToBegin();
+  itk::Index<2> randomIndex = this->RandomIterator.GetIndex();
 
   typedef itk::Statistics::MersenneTwisterRandomVariateGenerator GeneratorType;
   GeneratorType::Pointer generator = GeneratorType::New();
   generator->Initialize();
-  unsigned int randomMessageVector = generator->GetIntegerVariate(this->OutgoingMessageImage->GetPixel(randomIndex).size() -1);
+  unsigned int randomMessageVector = generator->GetIntegerVariate(this->NodeImage->GetPixel(randomIndex).GetNumberOfNeighbors() -1);
 
-  MessageVector& messageVector = this->OutgoingMessageImage->GetPixel(randomIndex)[randomMessageVector];
+  MessageVector& messageVector = this->NodeImage->GetPixel(randomIndex).GetOutgoingMessageVector(randomMessageVector);
   return messageVector;
 }

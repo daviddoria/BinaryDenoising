@@ -17,7 +17,7 @@ public:
   void Initialize();
 
 private:
-  itk::ImageRandomConstIteratorWithIndex<MessageImageType> randomIterator;
+  itk::ImageRandomConstIteratorWithIndex<NodeImageType> RandomIterator;
 
 };
 

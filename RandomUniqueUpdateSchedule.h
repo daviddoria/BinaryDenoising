@@ -18,7 +18,7 @@ public:
   void Initialize();
 
 private:
-  itk::ImageRandomNonRepeatingConstIteratorWithIndex<MessageImageType> randomIterator;
+  itk::ImageRandomNonRepeatingConstIteratorWithIndex<NodeImageType> RandomIterator;
   unsigned int CurrentNeighbor;
 };
 

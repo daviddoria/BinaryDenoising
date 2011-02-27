@@ -20,31 +20,6 @@ struct Message
   float Value;
 };
 
-struct MessageVector
-{
-  MessageVector();
-  void Normalize();
-
-  itk::Index<2> FromNode;
-  itk::Index<2> ToNode;
-
-  std::vector<Message> Messages; // The vector of messages
-
-  std::vector<Message>& GetMessages();
-  Message& GetMessage(const unsigned int i);
-  Message& GetMessageWithLabel(const int label);
-  unsigned int GetNumberOfMessages() const;
-
-  void OutputMessage(const unsigned int i) const;
-  void OutputAllMessageValues() const;
-  std::vector<float> GetAllMessageValues() const;
-
-  void AddMessage(Message);
-};
-
-
-
 std::ostream& operator<<(std::ostream& output, const Message &m);
-std::ostream& operator<<(std::ostream& output, const MessageVector &m);
 
 #endif

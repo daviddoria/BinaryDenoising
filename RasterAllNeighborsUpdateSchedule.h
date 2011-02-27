@@ -18,8 +18,8 @@ public:
   void Initialize();
 
 private:
-  itk::ImageRegionConstIterator<MessageImageType> imageIterator;
-  unsigned int currentMessageVectorId;
+  itk::ImageRegionConstIterator<NodeImageType> ImageIterator;
+  unsigned int CurrentMessageVectorId;
 };
 
 #endif
