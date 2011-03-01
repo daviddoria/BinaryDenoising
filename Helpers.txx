@@ -1,3 +1,20 @@
+/*
+Copyright (C) 2011 David Doria, daviddoria@gmail.com
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "itkNeighborhoodIterator.h"
 #include "itkRescaleIntensityImageFilter.h"
 #include "itkImageFileWriter.h"
@@ -134,7 +151,7 @@ template<typename T>
 std::vector<itk::Index<2> > Get4NeighborIndices(typename T::Pointer image, itk::Index<2> pixel)
 {
   // This function always returns a vector of length 4. An "invalidIndex" index is inserted for invalid (outside of the image) pixels
-  
+
   std::vector<itk::Index<2> > neighbors;
 
   itk::Offset<2> top;
@@ -161,7 +178,7 @@ std::vector<itk::Index<2> > Get4NeighborIndices(typename T::Pointer image, itk::
 
   itk::Index<2> invalidIndex;
   invalidIndex.Fill(-1);
-  
+
   for(unsigned int i = 0; i < offsets.size(); i++)
     {
     itk::Index<2> index = pixel + offsets[i];
@@ -226,7 +243,7 @@ void WriteCastedImage(typename T::Pointer image, std::string filename)
   typename CastFilterType::Pointer castFilter = CastFilterType::New();
   castFilter->SetInput(image);
   castFilter->Update();
-  
+
   typedef  itk::ImageFileWriter< UnsignedCharImageType > WriterType;
   WriterType::Pointer writer = WriterType::New();
   writer->SetFileName(filename);

@@ -13,10 +13,12 @@ PROJECT(BeliefPropagation)
 # TARGET_LINK_LIBRARIES(TestBinaryDenoisingSynthetic ITKCommon ITKIO ITKBasicFilters)
 
 ADD_EXECUTABLE(TestBinaryDenoisingReal TestBinaryDenoisingReal.cxx
-BinaryDenoising.cxx Node.cxx MessageVector.cxx Comparisons.cxx
+BinaryDenoising.cxx Node.cxx MessageVector.cxx# Comparisons.cxx
 UpdateSchedule.cxx RandomUniqueUpdateSchedule.cxx
 Message.cxx
-Helpers.cxx  Debugging.cxx)
+Helpers.cxx
+#Debugging.cxx
+)
 TARGET_LINK_LIBRARIES(TestBinaryDenoisingReal ITKCommon ITKIO ITKBasicFilters)
 #
 # ADD_EXECUTABLE(TestGrayscaleInpainting TestGrayscaleInpainting.cxx
@@ -37,5 +39,7 @@ TARGET_LINK_LIBRARIES(TestBinaryDenoisingReal ITKCommon ITKIO ITKBasicFilters)
 
 ADD_EXECUTABLE(TestMessageUpdateRules TestMessageUpdateRules.cxx
 BinaryDenoising.cxx UpdateSchedule.cxx Message.cxx Node.cxx MessageVector.cxx
-Helpers.cxx  Debugging.cxx)
+Helpers.cxx
+#Debugging.cxx
+)
 TARGET_LINK_LIBRARIES(TestMessageUpdateRules ITKCommon ITKIO ITKBasicFilters)

@@ -1,3 +1,20 @@
+/*
+Copyright (C) 2011 David Doria, daviddoria@gmail.com
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "itkImage.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
@@ -25,7 +42,7 @@ int main(int argc, char *argv[])
     {
     labelSet[i] = i;
     }
-    
+
   GrayscaleInpainting grayscaleInpainting;
   grayscaleInpainting.SetLabelSet(labelSet);
   grayscaleInpainting.SetObservations(reader->GetOutput());
@@ -38,12 +55,12 @@ int main(int argc, char *argv[])
 
   unsigned int numberOfPasses = 1;
   unsigned int fullPassCounter = 0;
-  
+
   unsigned int numberOfIterations = numberOfPasses * iterationsPerPass;
   //unsigned int numberOfIterations = 10;
 
   std::cout << "Performing " << numberOfIterations << " total iterations." << std::endl;
-  
+
   for(unsigned int i = 0; i < numberOfIterations; i++) // since we are using the raster schedule, one iteration is simply one message
     {
     std::cout << "Performing iteration " << i << "..." << std::endl;

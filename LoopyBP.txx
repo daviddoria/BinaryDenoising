@@ -1,3 +1,20 @@
+/*
+Copyright (C) 2011 David Doria, daviddoria@gmail.com
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "LoopyBP.h"
 
 #include "Helpers.h"
@@ -18,12 +35,6 @@ LoopyBP<T>::LoopyBP()
   this->NodeImage = NULL;
   this->Schedule = NULL;
   this->UpdateType = SUMPRODUCT;
-}
-
-template <typename T>
-IntImageType::Pointer LoopyBP<T>::GetImage()
-{
-  return this->Image;
 }
 
 template <typename T>
@@ -84,45 +95,6 @@ void LoopyBP<T>::Initialize()
   this->Schedule->Initialize();
 }
 
-template <typename T>
-void LoopyBP<T>::WriteBeliefImage(std::string filename)
-{
-  FloatImageType::Pointer beliefImage = FloatImageType::New();
-  beliefImage->SetRegions(this->NodeImage->GetLargestPossibleRegion());
-  beliefImage->Allocate();
-
-  itk::Size<2> imageSize = beliefImage->GetLargestPossibleRegion().GetSize();
-
-  for(unsigned int i = 0; i < imageSize[0]; i++)
-    {
-    for(unsigned int j = 0; j < imageSize[1]; j++)
-      {
-      std::vector<float> beliefs(this->LabelSet.size());
-      itk::Index<2> index;
-      index[0] = i;
-      index[1] = j;
-      for(unsigned int l = 0; l < this->LabelSet.size(); l++)
-        {
-        float belief = Belief(index, l);
-        beliefs[l] = belief;
-        }
-      Helpers::NormalizeVector(beliefs);
-      beliefImage->SetPixel(index, beliefs[1]); // the probability of "white pixel"
-      }// end for j
-    }// end for i
-
-  typedef itk::IntensityWindowingImageFilter <FloatImageType, IntImageType> IntensityWindowingImageFilterType;
-
-  IntensityWindowingImageFilterType::Pointer filter = IntensityWindowingImageFilterType::New();
-  filter->SetInput(beliefImage);
-  filter->SetWindowMinimum(0);
-  filter->SetWindowMaximum(1);
-  filter->SetOutputMinimum(0);
-  filter->SetOutputMaximum(255);
-  filter->Update();
-
-  Helpers::WriteScaledImage<IntImageType>(filter->GetOutput(), filename);
-}
 
 template <typename T>
 void LoopyBP<T>::CreateBinaryLabelSet()
@@ -168,14 +140,14 @@ void LoopyBP<T>::CreateAndInitializeMessages(const float defaultMessageValue)
   while(!nodeIterator.IsAtEnd())
     {
     Node* node = nodeIterator.Value();
-    
+
     std::vector<Node*> neighbors = Helpers::Get4Neighbors<NodeImageType>(this->NodeImage, nodeIterator.GetIndex());
     std::vector<itk::Index<2> > neighborIndices = Helpers::Get4NeighborIndices<NodeImageType>(this->NodeImage, nodeIterator.GetIndex());
     std::vector<MessageVector> messageVectors;
 
     for(unsigned int i = 0; i < neighbors.size(); i++) // add a message to each neighbor
       {
-      
+
       MessageVector messageVector;
       messageVector.FromNode = node;
 
@@ -199,7 +171,7 @@ void LoopyBP<T>::CreateAndInitializeMessages(const float defaultMessageValue)
         }
       messageVectors.push_back(messageVector);
       }
-    
+
     node->SetOutgoingMessages(messageVectors);
 
     ++nodeIterator;
@@ -245,14 +217,11 @@ bool LoopyBP<T>::SumProductMessageUpdate(MessageVector& messageVector)
 {
   // This function returns true if nothing changed (converged) (Convergence checking is not yet implemented, so it always returns false at the moment)
 
-  // Message update equation
-  // m_{ij}(l) = \sum_{p \in L} \left[ B(L(p), L(l)) U(L(p)) \prod_{k=N(i)\backslash j} m_{ki}(L(p)) \right]
-
   if(messageVector.ToNode == NULL)
     {
     return false; // nothing to do
     }
-    
+
   for(unsigned int l = 0; l < messageVector.GetNumberOfMessages(); l++)
     {
     float sum = 0.0;
@@ -350,7 +319,7 @@ bool LoopyBP<T>::MaxSumMessageUpdate(MessageVector& messageVector)
         }
       float current = - unary - binary + sum;
       current = exp(current);
-      
+
       if(current > maxValue)
         {
         maxValue = current;
@@ -374,7 +343,7 @@ template <typename T>
 bool LoopyBP<T>::MinSumMessageUpdate(MessageVector& messageVector)
 {
   //std::cout << "MinSumMessageUpdate()" << std::endl;
-  
+
   for(unsigned int l = 0; l < messageVector.GetNumberOfMessages(); l++)
     {
     float minValue = itk::NumericTraits<float>::max();
@@ -393,7 +362,7 @@ bool LoopyBP<T>::MinSumMessageUpdate(MessageVector& messageVector)
         sum += val;
         }
       float current = unary + binary - sum;
-      
+
       if(current < minValue)
         {
         minValue = current;
@@ -518,7 +487,7 @@ IntImageType::Pointer LoopyBP<T>::GetResult()
       }
     //std::cout << "Highest belief for " << imageIterator.GetIndex() << " is " << label << std::endl;
     outputIterator.Set(label);
-    
+
     ++outputIterator;
     ++nodeIterator;
     }
@@ -526,76 +495,26 @@ IntImageType::Pointer LoopyBP<T>::GetResult()
   return this->Image;
 }
 
-template <typename T>
-void LoopyBP<T>::OutputBeliefImage()
-{
-  itk::Size<2> imageSize = this->OutgoingMessageImage->GetLargestPossibleRegion().GetSize();
-
-  for(unsigned int i = 0; i < imageSize[0]; i++)
-    {
-    for(unsigned int j = 0; j < imageSize[1]; j++)
-      {
-      std::vector<float> beliefs(this->LabelSet.size());
-      itk::Index<2> index;
-      index[0] = i;
-      index[1] = j;
-      for(unsigned int l = 0; l < this->LabelSet.size(); l++)
-        {
-        float belief = Belief(index, l);
-        beliefs[l] = belief;
-        }
-      Helpers::NormalizeVector(beliefs);
-      Helpers::OutputVector<float>(beliefs);
-      }// end for j
-      std::cout << std::endl;
-    }// end for i
-  std::cout << std::endl;
-}
 
 
-template <typename T>
-void LoopyBP<T>::OutputMessageImage()
-{
-
-  itk::Size<2> imageSize = this->OutgoingMessageImage->GetLargestPossibleRegion().GetSize();
-
-  for(unsigned int i = 0; i < imageSize[0]; i++)
-    {
-    for(unsigned int j = 0; j < imageSize[1]; j++)
-      {
-      itk::Index<2> index;
-      index[0] = i;
-      index[1] = j;
-      std::vector<MessageVector> messageVectors = this->OutgoingMessageImage->GetPixel(index);
-      for(unsigned int neighbor = 0; neighbor < messageVectors.size(); neighbor++)
-        {
-        std::vector<float> values = messageVectors[neighbor].GetAllMessageValues();
-        Helpers::OutputVector<float>(values);
-        }
-      std::cout << " ";
-      }// end for j
-      std::cout << std::endl;
-    }// end for i
-  std::cout << std::endl;
-}
 
 template <typename T>
 int LoopyBP<T>::FindLabelWithHighestBelief(Node* const node)
 {
+  // Find the label with the highest belief
   float bestBelief = itk::NumericTraits<float>::min();
   int bestLabel = 0;
 
   for(unsigned int l = 0; l < this->LabelSet.size(); l++)
     {
     float belief = Belief(node, l);
-    //std::cout << "Pixel: " << node << " Label: " << l << " belief: " << belief << std::endl;
+
     if(belief > bestBelief)
       {
       bestBelief = belief;
       bestLabel = l;
       }
     }
-  //std::cout << "Best label is " << bestLabel << " with belief " << bestBelief << std::endl;
 
   return bestLabel;
 }
@@ -609,20 +528,16 @@ int LoopyBP<T>::FindLabelWithLowestBelief(Node* const node)
   float bestBelief = itk::NumericTraits<float>::max();
   int bestLabel = 0;
 
-  //std::cout << "Choices are:" << std::endl;
   for(unsigned int l = 0; l < this->LabelSet.size(); l++)
     {
-    
     float belief = Belief(node, l);
-    //std::cout << l << " : " << belief << std::endl;
-    //std::cout << "Pixel: " << node << " Label: " << l << " belief: " << belief << std::endl;
+
     if(belief < bestBelief)
       {
       bestBelief = belief;
       bestLabel = l;
       }
     }
-  //std::cout << "Best label is " << bestLabel << " with belief " << bestBelief << std::endl;
 
   return bestLabel;
 }
@@ -653,13 +568,13 @@ template <typename T>
 MessageVector& LoopyBP<T>::GetMessages(Node* const fromNode, Node* const toNode)
 {
   //std::cout << "Enter GetMessages()" << std::endl;
-  
+
   if(fromNode == NULL || toNode == NULL)
     {
     std::cerr << "Cannot get messages to or from NULL nodes! From: " << fromNode << " to: " << toNode << std::endl;
     exit(-1);
     }
-    
+
   unsigned int numberOfMessageVectors = fromNode->GetNumberOfNeighbors();
 
   for(unsigned int i = 0; i < numberOfMessageVectors; i++)
@@ -684,7 +599,7 @@ std::vector<Message*> LoopyBP<T>::GetIncomingMessagesWithLabel(Node* const node,
     std::cerr << "Cannot get messages for NULL node!" << std::endl;
     exit(-1);
     }
-    
+
   std::vector<Message*> incomingMessages;
   std::vector<Node* > neighbors = Helpers::Get4Neighbors<NodeImageType>(this->NodeImage, node->GetGridIndex());
   for(unsigned int i = 0; i < neighbors.size(); i++)
@@ -708,11 +623,4 @@ std::vector<Message*> LoopyBP<T>::GetIncomingMessagesWithLabel(Node* const node,
       }
     }
   return incomingMessages;
-}
-
-template <typename T>
-void LoopyBP<T>::OutputMessagesBetweenNodes(const itk::Index<2> fromNode, const itk::Index<2> toNode)
-{
-  MessageVector& messageVector = GetMessages(fromNode, toNode);
-  std::cout << "Messages from " << fromNode << " to " << toNode << std::endl << messageVector << std::endl;
 }
