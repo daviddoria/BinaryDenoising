@@ -5,17 +5,20 @@
 
 #include "Message.h"
 
+class Node;
+
 #include <vector>
 
 // This class represents all of the outgoing messages between a node and one of its neighbors.
 
-struct MessageVector
+class MessageVector
 {
+public:
   MessageVector();
   void Normalize();
 
-  itk::Index<2> FromNode;
-  itk::Index<2> ToNode;
+  Node* FromNode;
+  Node* ToNode;
 
   std::vector<Message> Messages; // The vector of messages
 
@@ -29,6 +32,11 @@ struct MessageVector
   std::vector<float> GetAllMessageValues() const;
 
   void AddMessage(Message);
+
+  bool IsValid();
+  
+private:
+
 };
 
 std::ostream& operator<<(std::ostream& output, const MessageVector &m);

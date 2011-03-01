@@ -2,12 +2,15 @@
 
 MessageVector::MessageVector()
 {
-  itk::Index<2> zero;
-  zero.Fill(0);
-
-  this->FromNode = zero;
-  this->ToNode = zero;
+  this->FromNode = NULL;
+  this->ToNode = NULL;
 }
+
+bool MessageVector::IsValid()
+{
+  return this->ToNode;
+}
+
 
 void MessageVector::AddMessage(Message m)
 {

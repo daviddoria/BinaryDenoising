@@ -15,9 +15,13 @@ public:
 
   void SetNodeImage(NodeImageType::Pointer);
 
+  virtual bool IsFinished() = 0;
+  void SetNumberOfPasses(unsigned int passes);
+  
 protected:
   NodeImageType::Pointer NodeImage;
-
+  bool Finished;
+  unsigned int NumberOfPasses;
 };
 
 #endif

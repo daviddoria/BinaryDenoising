@@ -11,6 +11,11 @@ void RasterOneNeighborUpdateSchedule::Initialize()
                                                                          this->NodeImage->GetLargestPossibleRegion());
 }
 
+bool RasterOneNeighborUpdateSchedule::IsFinished()
+{
+  return false;
+}
+
 MessageVector& RasterOneNeighborUpdateSchedule::NextMessage()
 {
   while(!this->ImageIterator.IsAtEnd())

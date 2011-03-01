@@ -27,6 +27,12 @@ IntImageType::Pointer LoopyBP<T>::GetImage()
 }
 
 template <typename T>
+bool LoopyBP<T>::IsFinished()
+{
+  return this->Schedule->IsFinished();
+}
+
+template <typename T>
 void LoopyBP<T>::SetUpdateToSumProduct()
 {
   this->UpdateType = SUMPRODUCT;
@@ -45,22 +51,31 @@ void LoopyBP<T>::SetUpdateToMinSum()
 }
 
 template <typename T>
+void LoopyBP<T>::SetUpdateToMaxSum()
+{
+  this->UpdateType = MAXSUM;
+}
+
+/*
+template <typename T>
 void LoopyBP<T>::SetScheduleToRandom()
 {
   this->Schedule = new RandomUpdateSchedule;
 }
+*/
 
 template <typename T>
 void LoopyBP<T>::SetScheduleToRandomUnique()
 {
   this->Schedule = new RandomUniqueUpdateSchedule;
 }
-
+/*
 template <typename T>
 void LoopyBP<T>::SetScheduleToRasterOneNeighbor()
 {
   this->Schedule = new RasterOneNeighborUpdateSchedule;
 }
+*/
 
 template <typename T>
 void LoopyBP<T>::Initialize()
@@ -134,43 +149,68 @@ void LoopyBP<T>::CreateAndInitializeMessages(const float defaultMessageValue)
     }
   this->NodeImage->SetRegions(this->Image->GetLargestPossibleRegion());
   this->NodeImage->Allocate();
+  this->NodeImage->FillBuffer(NULL);
 
-  itk::ImageRegionIterator<NodeImageType> imageIterator(this->NodeImage, this->NodeImage->GetLargestPossibleRegion());
+  itk::ImageRegionIterator<NodeImageType> nodeIterator(this->NodeImage, this->NodeImage->GetLargestPossibleRegion());
+  nodeIterator.GoToBegin();
 
-  while(!imageIterator.IsAtEnd())
+  // Create all of the nodes
+  while(!nodeIterator.IsAtEnd())
     {
-    std::vector<itk::Index<2> > neighbors = Helpers::Get4Neighbors<NodeImageType>(this->NodeImage, imageIterator.GetIndex());
+    Node* node = new Node;
+    node->SetGridIndex(nodeIterator.GetIndex());
+    nodeIterator.Set(node);
+    ++nodeIterator;
+    }
+
+  // Setup messages between nodes
+  nodeIterator.GoToBegin();
+  while(!nodeIterator.IsAtEnd())
+    {
+    Node* node = nodeIterator.Value();
+    
+    std::vector<Node*> neighbors = Helpers::Get4Neighbors<NodeImageType>(this->NodeImage, nodeIterator.GetIndex());
+    std::vector<itk::Index<2> > neighborIndices = Helpers::Get4NeighborIndices<NodeImageType>(this->NodeImage, nodeIterator.GetIndex());
     std::vector<MessageVector> messageVectors;
 
     for(unsigned int i = 0; i < neighbors.size(); i++) // add a message to each neighbor
       {
+      
       MessageVector messageVector;
-      messageVector.FromNode = imageIterator.GetIndex();
-      messageVector.ToNode = neighbors[i];
+      messageVector.FromNode = node;
 
-      //std::cout << "Created a message from " << messageVector.FromNode << " to " << messageVector.ToNode << std::endl;
-
-      if(messageVector.FromNode == messageVector.ToNode)
+      if(neighbors[i] == NULL)
         {
-        std::cerr << "Cannot create a message from " << messageVector.FromNode << " to " << messageVector.ToNode << std::endl;
-        exit(-1);
+        messageVector.ToNode = NULL;
         }
-      for(unsigned int l = 0; l < this->LabelSet.size(); l++) // add a message for each label
+      else
         {
-        Message m;
-        m.Label = l;
-        m.Value = defaultMessageValue;
-        messageVector.AddMessage(m);
+        messageVector.ToNode = neighbors[i];
+
+        //std::cout << "Created a message from " << messageVector.FromNode << " to " << messageVector.ToNode << std::endl;
+
+        for(unsigned int l = 0; l < this->LabelSet.size(); l++) // add a message for each label
+          {
+          Message m;
+          m.Label = l;
+          m.Value = defaultMessageValue;
+          messageVector.AddMessage(m);
+          }
         }
       messageVectors.push_back(messageVector);
       }
-    Node node;
-    node.SetOutgoingMessages(messageVectors);
-    imageIterator.Set(node);
+    
+    node->SetOutgoingMessages(messageVectors);
 
-    ++imageIterator;
+    ++nodeIterator;
     }
 
+}
+
+template <typename T>
+void LoopyBP<T>::SetNumberOfPasses(unsigned int passes)
+{
+  this->Schedule->SetNumberOfPasses(passes);
 }
 
 template <typename T>
@@ -182,15 +222,19 @@ bool LoopyBP<T>::Iterate()
   if(this->UpdateType == SUMPRODUCT)
     {
     //std::cout << "Using SumProductMessageUpdate" << std::endl;
-    SumProductMessageUpdate(messageVector);
+    return SumProductMessageUpdate(messageVector);
     }
-  if(this->UpdateType == MAXPRODUCT)
+  else if(this->UpdateType == MAXPRODUCT)
     {
-    MaxProductMessageUpdate(messageVector);
+    return MaxProductMessageUpdate(messageVector);
     }
-  if(this->UpdateType == MINSUM)
+  else if(this->UpdateType == MINSUM)
     {
-    MinSumMessageUpdate(messageVector);
+    return MinSumMessageUpdate(messageVector);
+    }
+  else if(this->UpdateType == MAXSUM)
+    {
+    return MaxSumMessageUpdate(messageVector);
     }
 
   return false; // Not yet converged
@@ -204,12 +248,17 @@ bool LoopyBP<T>::SumProductMessageUpdate(MessageVector& messageVector)
   // Message update equation
   // m_{ij}(l) = \sum_{p \in L} \left[ B(L(p), L(l)) U(L(p)) \prod_{k=N(i)\backslash j} m_{ki}(L(p)) \right]
 
+  if(messageVector.ToNode == NULL)
+    {
+    return false; // nothing to do
+    }
+    
   for(unsigned int l = 0; l < messageVector.GetNumberOfMessages(); l++)
     {
     float sum = 0.0;
     for(unsigned int p = 0; p < this->LabelSet.size(); p++)
       {
-      float unary = this->UnaryCost(this->LabelSet[p], messageVector.FromNode);
+      float unary = this->UnaryCost(this->LabelSet[p], messageVector.FromNode->GetGridIndex());
       float binary = this->BinaryCost(this->LabelSet[p], messageVector.GetMessage(l).Label);
 
       float product = 1.0;
@@ -248,7 +297,7 @@ bool LoopyBP<T>::MaxProductMessageUpdate(MessageVector& messageVector)
 
     for(unsigned int p = 0; p < this->LabelSet.size(); p++)
       {
-      float unary = this->UnaryCost(this->LabelSet[p], messageVector.FromNode);
+      float unary = this->UnaryCost(this->LabelSet[p], messageVector.FromNode->GetGridIndex());
       float binary = this->BinaryCost(this->LabelSet[p], messageVector.GetMessage(l).Label);
 
       float product = 1.0;
@@ -259,6 +308,7 @@ bool LoopyBP<T>::MaxProductMessageUpdate(MessageVector& messageVector)
         product *= messages[k]->Value;
         }
       float current = exp(-unary) * exp(-binary) * product;
+
       if(current > maxValue)
         {
         maxValue = current;
@@ -277,17 +327,17 @@ bool LoopyBP<T>::MaxProductMessageUpdate(MessageVector& messageVector)
 
 
 template <typename T>
-bool LoopyBP<T>::MinSumMessageUpdate(MessageVector& messageVector)
+bool LoopyBP<T>::MaxSumMessageUpdate(MessageVector& messageVector)
 {
+  //std::cout << "MaxSumMessageUpdate()" << std::endl;
 
-  // This function returns true if nothing changed (converged) (Convergence checking is not yet implemented, so it always returns false at the moment)
   for(unsigned int l = 0; l < messageVector.GetNumberOfMessages(); l++)
     {
-    float minValue = itk::NumericTraits<float>::max();
+    float maxValue = itk::NumericTraits<float>::min(); // initialize to a very small value so any value we compute will be larger
 
     for(unsigned int p = 0; p < this->LabelSet.size(); p++)
       {
-      float unary = this->UnaryCost(this->LabelSet[p], messageVector.FromNode);
+      float unary = this->UnaryCost(this->LabelSet[p], messageVector.FromNode->GetGridIndex());
       float binary = this->BinaryCost(this->LabelSet[p], messageVector.GetMessage(l).Label);
 
       float sum = 0.0;
@@ -295,9 +345,55 @@ bool LoopyBP<T>::MinSumMessageUpdate(MessageVector& messageVector)
       std::vector<Message*> messages = GetIncomingMessagesWithLabel(messageVector.FromNode, this->LabelSet[p]);
       for(unsigned int k = 0; k < messages.size(); k++)
         {
-        sum += messages[k]->Value;
+        float val = messages[k]->Value;
+        sum += log(val);
         }
-      float current = unary + binary + sum;
+      float current = - unary - binary + sum;
+      current = exp(current);
+      
+      if(current > maxValue)
+        {
+        maxValue = current;
+        }
+      }
+      messageVector.GetMessage(l).Value = maxValue;
+    }
+
+  //std::cout << "New message value: " << GetMessage(m.FromNode, m.ToNode,m .Label).Value << std::endl;
+
+  messageVector.Normalize();
+
+  //std::cout << "Normalized message value: " << GetMessage(m.FromNode, m.ToNode,m .Label).Value << std::endl;
+  //std::cout << std::endl;
+
+  return false; // Not yet converged
+}
+
+
+template <typename T>
+bool LoopyBP<T>::MinSumMessageUpdate(MessageVector& messageVector)
+{
+  //std::cout << "MinSumMessageUpdate()" << std::endl;
+  
+  for(unsigned int l = 0; l < messageVector.GetNumberOfMessages(); l++)
+    {
+    float minValue = itk::NumericTraits<float>::max();
+
+    for(unsigned int p = 0; p < this->LabelSet.size(); p++)
+      {
+      float unary = this->UnaryCost(this->LabelSet[p], messageVector.FromNode->GetGridIndex());
+      float binary = this->BinaryCost(this->LabelSet[p], messageVector.GetMessage(l).Label);
+
+      float sum = 0.0;
+      //std::cout << "Getting messages with label (" << m.FromNode << " , " << p << ")" << std::endl;
+      std::vector<Message*> messages = GetIncomingMessagesWithLabel(messageVector.FromNode, this->LabelSet[p]);
+      for(unsigned int k = 0; k < messages.size(); k++)
+        {
+        float val = messages[k]->Value;
+        sum += val;
+        }
+      float current = unary + binary - sum;
+      
       if(current < minValue)
         {
         minValue = current;
@@ -317,6 +413,8 @@ bool LoopyBP<T>::MinSumMessageUpdate(MessageVector& messageVector)
 }
 
 
+
+
 template <typename T>
 float LoopyBP<T>::SumOfMessages(std::vector<Message*> messages)
 {
@@ -329,9 +427,32 @@ float LoopyBP<T>::SumOfMessages(std::vector<Message*> messages)
 }
 
 template <typename T>
-float LoopyBP<T>::Belief(const itk::Index<2> node, const int label)
+float LoopyBP<T>::Belief(Node* const node, const int label)
 {
-  float unary = UnaryCost(label, node);
+  if(this->UpdateType == MAXSUM)
+    {
+    return StandardBelief(node, label);
+    }
+  else if(this->UpdateType == MINSUM)
+    {
+    return LogBelief(node, label);
+    }
+  else if(this->UpdateType == SUMPRODUCT || this->UpdateType == MAXPRODUCT || this->UpdateType == MAXSUM)
+    {
+    return StandardBelief(node, label);
+    }
+  else
+    {
+    std::cerr << "This update type is not supported!" << std::endl;
+    exit(-1);
+    return 0.0;
+    }
+}
+
+template <typename T>
+float LoopyBP<T>::StandardBelief(Node* const node, const int label)
+{
+  float unary = UnaryCost(label, node->GetGridIndex());
   //std::cout << "UnaryCost: " << unary << std::endl;
 
   float product = 1.0;
@@ -349,17 +470,57 @@ float LoopyBP<T>::Belief(const itk::Index<2> node, const int label)
   return belief;
 }
 
+
+template <typename T>
+float LoopyBP<T>::LogBelief(Node* const node, const int label)
+{
+  // This should only be used if the MinSumMesssageUpdate was used (because the message are already in the log domain)
+  float unary = UnaryCost(label, node->GetGridIndex());
+
+  float sum = 0.0;
+
+  std::vector<Message*> incomingMessages = GetIncomingMessagesWithLabel(node, label);
+
+  for(unsigned int i = 0; i < incomingMessages.size(); i++)
+    {
+    sum += log(incomingMessages[i]->Value); // works better
+    }
+
+  //std::cout << "product: " << product << std::endl;
+
+  float belief = unary - sum;
+  return belief;
+}
+
+
 template <typename T>
 IntImageType::Pointer LoopyBP<T>::GetResult()
 {
-  itk::ImageRegionIterator<IntImageType> imageIterator(this->Image, this->Image->GetLargestPossibleRegion());
+  itk::ImageRegionIterator<IntImageType> outputIterator(this->Image, this->Image->GetLargestPossibleRegion());
+  itk::ImageRegionIterator<NodeImageType> nodeIterator(this->NodeImage, this->NodeImage->GetLargestPossibleRegion());
 
-  while(!imageIterator.IsAtEnd())
+  while(!outputIterator.IsAtEnd())
     {
-    int label = FindLabelWithHighestBelief(imageIterator.GetIndex());
+    int label = 0;
+    if(this->UpdateType == MAXPRODUCT || this->UpdateType == SUMPRODUCT || this->UpdateType == MAXSUM)
+      {
+      label = FindLabelWithHighestBelief(nodeIterator.Get());
+      }
+    else if(this->UpdateType == MINSUM)
+      {
+      //std::cout << "Computing MinSum Result..." << std::endl;
+      label = FindLabelWithLowestBelief(nodeIterator.Get());
+      }
+    else
+      {
+      std::cerr << "Update type not supported!" << std::endl;
+      exit(-1);
+      }
     //std::cout << "Highest belief for " << imageIterator.GetIndex() << " is " << label << std::endl;
-    imageIterator.Set(label);
-    ++imageIterator;
+    outputIterator.Set(label);
+    
+    ++outputIterator;
+    ++nodeIterator;
     }
 
   return this->Image;
@@ -419,9 +580,9 @@ void LoopyBP<T>::OutputMessageImage()
 }
 
 template <typename T>
-int LoopyBP<T>::FindLabelWithHighestBelief(const itk::Index<2> node)
+int LoopyBP<T>::FindLabelWithHighestBelief(Node* const node)
 {
-  float bestBelief = 0;
+  float bestBelief = itk::NumericTraits<float>::min();
   int bestLabel = 0;
 
   for(unsigned int l = 0; l < this->LabelSet.size(); l++)
@@ -441,16 +602,19 @@ int LoopyBP<T>::FindLabelWithHighestBelief(const itk::Index<2> node)
 
 
 template <typename T>
-int LoopyBP<T>::FindLabelWithLowestBelief(const itk::Index<2> node)
+int LoopyBP<T>::FindLabelWithLowestBelief(Node* const node)
 {
   // Find the label with the lowest belief
 
   float bestBelief = itk::NumericTraits<float>::max();
   int bestLabel = 0;
 
+  //std::cout << "Choices are:" << std::endl;
   for(unsigned int l = 0; l < this->LabelSet.size(); l++)
     {
+    
     float belief = Belief(node, l);
+    //std::cout << l << " : " << belief << std::endl;
     //std::cout << "Pixel: " << node << " Label: " << l << " belief: " << belief << std::endl;
     if(belief < bestBelief)
       {
@@ -463,8 +627,9 @@ int LoopyBP<T>::FindLabelWithLowestBelief(const itk::Index<2> node)
   return bestLabel;
 }
 
+
 template <typename T>
-Message& LoopyBP<T>::GetMessage(const itk::Index<2> fromNode, const itk::Index<2> toNode, const int label)
+Message& LoopyBP<T>::GetMessage(const Node* fromNode, const Node* toNode, const int label)
 {
   std::vector<MessageVector>& messageVectors = this->OutgoingMessageImage->GetPixel(fromNode);
   for(unsigned int v = 0; v < messageVectors.size(); v++)
@@ -484,30 +649,24 @@ Message& LoopyBP<T>::GetMessage(const itk::Index<2> fromNode, const itk::Index<2
   exit(-1);
 }
 
-
 template <typename T>
-std::vector<Message*> LoopyBP<T>::GetMessages(const itk::Index<2> node)
+MessageVector& LoopyBP<T>::GetMessages(Node* const fromNode, Node* const toNode)
 {
-  std::vector<Message>& outgoingMessages = this->NodeImage->GetPixel(node);
-  std::vector<Message*> messages;
-
-  for(unsigned int i = 0; i < outgoingMessages.size(); i++)
+  //std::cout << "Enter GetMessages()" << std::endl;
+  
+  if(fromNode == NULL || toNode == NULL)
     {
-    messages.push_back(&(outgoingMessages[i]));
+    std::cerr << "Cannot get messages to or from NULL nodes! From: " << fromNode << " to: " << toNode << std::endl;
+    exit(-1);
     }
-  return messages;
-}
-
-template <typename T>
-MessageVector& LoopyBP<T>::GetMessages(const itk::Index<2> fromNode, const itk::Index<2> toNode)
-{
-  unsigned int numberOfMessageVectors = this->NodeImage->GetPixel(fromNode).GetNumberOfNeighbors();
+    
+  unsigned int numberOfMessageVectors = fromNode->GetNumberOfNeighbors();
 
   for(unsigned int i = 0; i < numberOfMessageVectors; i++)
     {
-    if(this->NodeImage->GetPixel(fromNode).GetOutgoingMessageVector(i).ToNode == toNode)
+    if(fromNode->GetOutgoingMessageVector(i).ToNode == toNode)
       {
-      return this->NodeImage->GetPixel(fromNode).GetOutgoingMessageVector(i);
+      return fromNode->GetOutgoingMessageVector(i);
       }
     }
   std::cerr << "No MessageVector from " << fromNode << " to " << toNode << " exists!" << std::endl;
@@ -516,13 +675,30 @@ MessageVector& LoopyBP<T>::GetMessages(const itk::Index<2> fromNode, const itk::
 
 
 template <typename T>
-std::vector<Message*> LoopyBP<T>::GetIncomingMessagesWithLabel(const itk::Index<2> node, const int label)
+std::vector<Message*> LoopyBP<T>::GetIncomingMessagesWithLabel(Node* const node, const int label)
 {
+  //std::cout << "Enter GetIncomingMessagesWithLabel()" << std::endl;
+
+  if(node == NULL)
+    {
+    std::cerr << "Cannot get messages for NULL node!" << std::endl;
+    exit(-1);
+    }
+    
   std::vector<Message*> incomingMessages;
-  std::vector<itk::Index<2> > neighbors = Helpers::Get4Neighbors<NodeImageType>(this->NodeImage, node);
+  std::vector<Node* > neighbors = Helpers::Get4Neighbors<NodeImageType>(this->NodeImage, node->GetGridIndex());
   for(unsigned int i = 0; i < neighbors.size(); i++)
     {
-    MessageVector& messageVector = GetMessages(neighbors[i], node); // Get incoming messages
+    if(neighbors[i] == NULL) // can't get incoming messages from a non-existent neighbor!
+      {
+      continue;
+      }
+    MessageVector& messageVector = GetMessages(neighbors[i], node); // Get incoming messages (call is GetMessage(from, to) )
+    //std::cout << messageVector << std::endl;
+    if(messageVector.ToNode == NULL)
+      {
+      continue;
+      }
     for(unsigned int m = 0; m < messageVector.GetNumberOfMessages(); m++)
       {
       if(messageVector.GetMessage(m).Label == label)

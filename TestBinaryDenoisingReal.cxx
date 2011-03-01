@@ -27,26 +27,23 @@ int main(int argc, char *argv[])
   binaryDenoising.SetObservations(binaryImage);
   binaryDenoising.CreateBinaryLabelSet();
 
-  //binaryDenoising.SetScheduleToRandom();
   binaryDenoising.SetScheduleToRandomUnique();
-  //binaryDenoising.SetScheduleToRasterOneNeighbor();
 
-  binaryDenoising.SetUpdateToSumProduct();
-
+  //binaryDenoising.SetUpdateToSumProduct();
+  //binaryDenoising.SetUpdateToMaxProduct();
+  binaryDenoising.SetUpdateToMinSum();
+  //binaryDenoising.SetUpdateToMaxSum();
+  //binaryDenoising.SetBinaryPenalty(1.);
 
   binaryDenoising.SetBinaryPenalty(1.);
+
   binaryDenoising.CreateAndInitializeMessages(1.0);
+  
+  binaryDenoising.SetNumberOfPasses(20);
   binaryDenoising.Initialize();
-
-  unsigned int numberOfPixels = binaryImage->GetLargestPossibleRegion().GetNumberOfPixels();
-  unsigned int iterationsPerPass = numberOfPixels * 4 * 2; // 4 neighbors per pixel (approximately) and 2 messages per neighbor
-
-  unsigned int numberOfPasses = 5;
-
-  unsigned int numberOfIterations = numberOfPasses * iterationsPerPass;
-  for(unsigned int i = 0; i < numberOfIterations; i++) // since we are using the raster schedule, one iteration is simply one message
+  
+  while(!binaryDenoising.IsFinished())
     {
-    //std::cout << "Performing iteration " << i << "..." << std::endl;
 
     binaryDenoising.Iterate();
 /*

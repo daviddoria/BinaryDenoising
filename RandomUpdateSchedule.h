@@ -15,7 +15,7 @@ public:
   RandomUpdateSchedule();
   MessageVector& NextMessage();
   void Initialize();
-
+  bool IsFinished();
 private:
   itk::ImageRandomConstIteratorWithIndex<NodeImageType> RandomIterator;
 

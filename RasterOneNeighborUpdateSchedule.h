@@ -18,7 +18,8 @@ public:
   RasterOneNeighborUpdateSchedule();
   MessageVector& NextMessage();
   void Initialize();
-
+  bool IsFinished();
+  
 private:
   itk::ImageRegionConstIterator<NodeImageType> ImageIterator;
   unsigned int CurrentMessageVectorId;

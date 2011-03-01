@@ -34,13 +34,13 @@ void BinaryDenoising::SetObservations(IntImageType::Pointer observations)
 float BinaryDenoising::UnaryCost(int label, itk::Index<2> pixel)
 {
   float cost = 0.0;
-  if(label == this->Observations->GetPixel(pixel))
+  if(label == this->Observations->GetPixel(pixel)) 
     {
-    cost = 0.2;
+    cost = 0.2;// if labels are the same, the cost is low
     }
   else
     {
-    cost = .8;
+    cost = .8;// if labels are the different, the cost is high
     }
 
   return cost;
@@ -48,15 +48,8 @@ float BinaryDenoising::UnaryCost(int label, itk::Index<2> pixel)
 
 float BinaryDenoising::BinaryCost(int label1, int label2)
 {
-  float cost = 0.0;
-
-  if(label1 == label2)
-    {
-    cost = 0.;
-    }
-  else
-    {
-    cost = this->BinaryPenalty;
-    }
+  // if labels are the same, the cost is low (zero)
+  float cost = this->BinaryPenalty * abs(label1 - label2);
+  
   return cost;
 }

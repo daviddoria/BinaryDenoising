@@ -5,6 +5,11 @@ RandomUpdateSchedule::RandomUpdateSchedule()
 {
 }
 
+bool RandomUpdateSchedule::IsFinished()
+{
+  return false;
+}
+
 void RandomUpdateSchedule::Initialize()
 {
   this->RandomIterator = itk::ImageRandomConstIteratorWithIndex<NodeImageType> (this->NodeImage,

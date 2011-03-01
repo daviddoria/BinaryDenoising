@@ -17,7 +17,6 @@ void WriteScaledImage(typename T::Pointer image, std::string filename);
 template<typename T>
 void WriteCastedImage(typename T::Pointer image, std::string filename);
 
-
 template<typename T>
 void WriteBinaryImage(typename T::Pointer image, std::string filename);
 
@@ -28,7 +27,13 @@ template<typename T>
 std::vector<itk::Index<2> > Get8Neighbors(typename T::Pointer image, itk::Index<2> pixel);
 
 template<typename T>
-std::vector<itk::Index<2> > Get4Neighbors(typename T::Pointer image, itk::Index<2> pixel);
+std::vector<itk::Index<2> > Get4NeighborIndices(typename T::Pointer image, itk::Index<2> pixel);
+
+template<typename T>
+std::vector<itk::Index<2> > Get4NeighborIndicesValid(typename T::Pointer image, itk::Index<2> pixel);
+
+template<typename T>
+std::vector<typename T::PixelType > Get4Neighbors(typename T::Pointer image, itk::Index<2> pixel);
 
 template<typename T>
 void OutputVector(std::vector<T> vec);

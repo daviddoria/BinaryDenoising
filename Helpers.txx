@@ -73,13 +73,13 @@ std::vector<itk::Index<2> > Get8Neighbors(typename T::Pointer image, itk::Index<
       bool IsInBounds;
       iterator.GetPixel(i, IsInBounds);
       if(IsInBounds)
-	{
-	if(index != pixel) // don't include the center (current) pixel
-	  {
-	  neighbors.push_back(iterator.GetIndex(i));
-	  //std::cout << "added " << iterator.GetIndex(i) << " as a neighbor of " << pixel << std::endl;
-	  }
-	}
+        {
+        if(index != pixel) // don't include the center (current) pixel
+          {
+          neighbors.push_back(iterator.GetIndex(i));
+          //std::cout << "added " << iterator.GetIndex(i) << " as a neighbor of " << pixel << std::endl;
+          }
+        }
       }
     ++iterator;
     }
@@ -87,12 +87,103 @@ std::vector<itk::Index<2> > Get8Neighbors(typename T::Pointer image, itk::Index<
   return neighbors;
 }
 
+template<typename T>
+std::vector<typename T::PixelType > Get4Neighbors(typename T::Pointer image, itk::Index<2> pixel)
+{
+  std::vector<typename T::PixelType > neighbors;
+
+  itk::Offset<2> top;
+  top[0] = 0;
+  top[1] = 1;
+
+  itk::Offset<2> bottom;
+  bottom[0] = 0;
+  bottom[1] = -1;
+
+  itk::Offset<2> left;
+  left[0] = -1;
+  left[1] = 0;
+
+  itk::Offset<2> right;
+  right[0] = 1;
+  right[1] = 0;
+
+  std::vector<itk::Offset<2> > offsets;
+  offsets.push_back(top);
+  offsets.push_back(bottom);
+  offsets.push_back(left);
+  offsets.push_back(right);
+
+  for(unsigned int i = 0; i < offsets.size(); i++)
+    {
+    itk::Index<2> index = pixel + offsets[i];
+    if(image->GetLargestPossibleRegion().IsInside(index))
+      {
+      neighbors.push_back(image->GetPixel(index));
+      }
+    else
+      {
+      neighbors.push_back(NULL);
+      }
+    }
+
+  return neighbors;
+}
 
 template<typename T>
-std::vector<itk::Index<2> > Get4Neighbors(typename T::Pointer image, itk::Index<2> pixel)
+std::vector<itk::Index<2> > Get4NeighborIndices(typename T::Pointer image, itk::Index<2> pixel)
 {
+  // This function always returns a vector of length 4. An "invalidIndex" index is inserted for invalid (outside of the image) pixels
+  
   std::vector<itk::Index<2> > neighbors;
 
+  itk::Offset<2> top;
+  top[0] = 0;
+  top[1] = 1;
+
+  itk::Offset<2> bottom;
+  bottom[0] = 0;
+  bottom[1] = -1;
+
+  itk::Offset<2> left;
+  left[0] = -1;
+  left[1] = 0;
+
+  itk::Offset<2> right;
+  right[0] = 1;
+  right[1] = 0;
+
+  std::vector<itk::Offset<2> > offsets;
+  offsets.push_back(top);
+  offsets.push_back(bottom);
+  offsets.push_back(left);
+  offsets.push_back(right);
+
+  itk::Index<2> invalidIndex;
+  invalidIndex.Fill(-1);
+  
+  for(unsigned int i = 0; i < offsets.size(); i++)
+    {
+    itk::Index<2> index = pixel + offsets[i];
+    if(image->GetLargestPossibleRegion().IsInside(index))
+      {
+      neighbors.push_back(index);
+      }
+    else
+      {
+      neighbors.push_back(invalidIndex);
+      }
+    }
+
+  return neighbors;
+}
+
+
+template<typename T>
+std::vector<itk::Index<2> > Get4NeighborIndicesValid(typename T::Pointer image, itk::Index<2> pixel)
+{
+  // This function can return a vector of length 0 - 4. Invalid neighbors are skipped (i.e. not added to the vector)
+  std::vector<itk::Index<2> > neighbors;
 
   itk::Offset<2> top;
   top[0] = 0;

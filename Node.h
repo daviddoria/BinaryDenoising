@@ -14,9 +14,12 @@ public:
   MessageVector& GetOutgoingMessageVector(unsigned int);
   unsigned int GetNumberOfNeighbors() const;
 
+  void SetGridIndex(itk::Index<2>);
+  itk::Index<2> GetGridIndex() const;
+  
 private:
   std::vector<MessageVector> OutgoingMessages;
-
+  itk::Index<2> GridIndex;
 };
 
 #endif
