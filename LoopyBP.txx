@@ -24,7 +24,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "RandomUniqueUpdateSchedule.h"
 #include "RasterOneNeighborUpdateSchedule.h"
-#include "RandomUpdateSchedule.h"
 
 #include <vector>
 
@@ -149,15 +148,15 @@ void LoopyBP<T>::CreateAndInitializeMessages(const float defaultMessageValue)
       {
 
       MessageVector messageVector;
-      messageVector.FromNode = node;
+      messageVector.OriginNode = node;
 
       if(neighbors[i] == NULL)
         {
-        messageVector.ToNode = NULL;
+        messageVector.DestinationNode = NULL;
         }
       else
         {
-        messageVector.ToNode = neighbors[i];
+        messageVector.DestinationNode = neighbors[i];
 
         //std::cout << "Created a message from " << messageVector.FromNode << " to " << messageVector.ToNode << std::endl;
 
@@ -217,7 +216,7 @@ bool LoopyBP<T>::SumProductMessageUpdate(MessageVector& messageVector)
 {
   // This function returns true if nothing changed (converged) (Convergence checking is not yet implemented, so it always returns false at the moment)
 
-  if(messageVector.ToNode == NULL)
+  if(messageVector.DestinationNode == NULL)
     {
     return false; // nothing to do
     }
@@ -227,12 +226,12 @@ bool LoopyBP<T>::SumProductMessageUpdate(MessageVector& messageVector)
     float sum = 0.0;
     for(unsigned int p = 0; p < this->LabelSet.size(); p++)
       {
-      float unary = this->UnaryCost(this->LabelSet[p], messageVector.FromNode->GetGridIndex());
+      float unary = this->UnaryCost(this->LabelSet[p], messageVector.OriginNode->GetGridIndex());
       float binary = this->BinaryCost(this->LabelSet[p], messageVector.GetMessage(l).Label);
 
       float product = 1.0;
       //std::cout << "Getting messages with label (" << m.FromNode << " , " << p << ")" << std::endl;
-      std::vector<Message*> messages = GetIncomingMessagesWithLabel(messageVector.FromNode, this->LabelSet[p]);
+      std::vector<Message*> messages = GetIncomingMessagesWithLabel(messageVector.OriginNode, this->LabelSet[p]);
       for(unsigned int k = 0; k < messages.size(); k++)
         {
         product *= messages[k]->Value;
@@ -266,12 +265,12 @@ bool LoopyBP<T>::MaxProductMessageUpdate(MessageVector& messageVector)
 
     for(unsigned int p = 0; p < this->LabelSet.size(); p++)
       {
-      float unary = this->UnaryCost(this->LabelSet[p], messageVector.FromNode->GetGridIndex());
+      float unary = this->UnaryCost(this->LabelSet[p], messageVector.OriginNode->GetGridIndex());
       float binary = this->BinaryCost(this->LabelSet[p], messageVector.GetMessage(l).Label);
 
       float product = 1.0;
       //std::cout << "Getting messages with label (" << m.FromNode << " , " << p << ")" << std::endl;
-      std::vector<Message*> messages = GetIncomingMessagesWithLabel(messageVector.FromNode, this->LabelSet[p]);
+      std::vector<Message*> messages = GetIncomingMessagesWithLabel(messageVector.OriginNode, this->LabelSet[p]);
       for(unsigned int k = 0; k < messages.size(); k++)
         {
         product *= messages[k]->Value;
@@ -306,12 +305,12 @@ bool LoopyBP<T>::MaxSumMessageUpdate(MessageVector& messageVector)
 
     for(unsigned int p = 0; p < this->LabelSet.size(); p++)
       {
-      float unary = this->UnaryCost(this->LabelSet[p], messageVector.FromNode->GetGridIndex());
+      float unary = this->UnaryCost(this->LabelSet[p], messageVector.OriginNode->GetGridIndex());
       float binary = this->BinaryCost(this->LabelSet[p], messageVector.GetMessage(l).Label);
 
       float sum = 0.0;
       //std::cout << "Getting messages with label (" << m.FromNode << " , " << p << ")" << std::endl;
-      std::vector<Message*> messages = GetIncomingMessagesWithLabel(messageVector.FromNode, this->LabelSet[p]);
+      std::vector<Message*> messages = GetIncomingMessagesWithLabel(messageVector.OriginNode, this->LabelSet[p]);
       for(unsigned int k = 0; k < messages.size(); k++)
         {
         float val = messages[k]->Value;
@@ -350,12 +349,12 @@ bool LoopyBP<T>::MinSumMessageUpdate(MessageVector& messageVector)
 
     for(unsigned int p = 0; p < this->LabelSet.size(); p++)
       {
-      float unary = this->UnaryCost(this->LabelSet[p], messageVector.FromNode->GetGridIndex());
+      float unary = this->UnaryCost(this->LabelSet[p], messageVector.OriginNode->GetGridIndex());
       float binary = this->BinaryCost(this->LabelSet[p], messageVector.GetMessage(l).Label);
 
       float sum = 0.0;
       //std::cout << "Getting messages with label (" << m.FromNode << " , " << p << ")" << std::endl;
-      std::vector<Message*> messages = GetIncomingMessagesWithLabel(messageVector.FromNode, this->LabelSet[p]);
+      std::vector<Message*> messages = GetIncomingMessagesWithLabel(messageVector.OriginNode, this->LabelSet[p]);
       for(unsigned int k = 0; k < messages.size(); k++)
         {
         float val = messages[k]->Value;
@@ -549,7 +548,7 @@ Message& LoopyBP<T>::GetMessage(const Node* fromNode, const Node* toNode, const 
   std::vector<MessageVector>& messageVectors = this->OutgoingMessageImage->GetPixel(fromNode);
   for(unsigned int v = 0; v < messageVectors.size(); v++)
     {
-    if(messageVectors[v].ToNode == toNode)
+    if(messageVectors[v].DestinationNode == toNode)
       {
       for(unsigned int m = 0; m < messageVectors[v].GetNumberOfMessages(); m++)
         {
@@ -579,7 +578,7 @@ MessageVector& LoopyBP<T>::GetMessages(Node* const fromNode, Node* const toNode)
 
   for(unsigned int i = 0; i < numberOfMessageVectors; i++)
     {
-    if(fromNode->GetOutgoingMessageVector(i).ToNode == toNode)
+    if(fromNode->GetOutgoingMessageVector(i).DestinationNode == toNode)
       {
       return fromNode->GetOutgoingMessageVector(i);
       }
@@ -610,7 +609,7 @@ std::vector<Message*> LoopyBP<T>::GetIncomingMessagesWithLabel(Node* const node,
       }
     MessageVector& messageVector = GetMessages(neighbors[i], node); // Get incoming messages (call is GetMessage(from, to) )
     //std::cout << messageVector << std::endl;
-    if(messageVector.ToNode == NULL)
+    if(messageVector.DestinationNode == NULL)
       {
       continue;
       }

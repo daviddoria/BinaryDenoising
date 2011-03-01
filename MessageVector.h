@@ -32,30 +32,48 @@ class MessageVector
 {
 public:
   MessageVector();
+
+  // Divide each message's value by the sum of all the message values (so the resulting values sum to 1).
   void Normalize();
 
-  Node* FromNode;
-  Node* ToNode;
+  // The origin node (where the message started).
+  Node* OriginNode;
 
-  std::vector<Message> Messages; // The vector of messages
+  // The destination node (where the message is going).
+  Node* DestinationNode;
 
+  // The vector of messages between two nodes (one message for each label).
+  std::vector<Message> Messages;
+
+  // Get a reference to the messages vector
   std::vector<Message>& GetMessages();
+
+  // Get a reference to a particular message
   Message& GetMessage(const unsigned int i);
+
+  // Get a reference to the message with a particular label
   Message& GetMessageWithLabel(const int label);
+
+  // Get the number of messages in the vector of messages between the two nodes (this is the same as the number of labels).
   unsigned int GetNumberOfMessages() const;
 
-  void OutputMessage(const unsigned int i) const;
-  void OutputAllMessageValues() const;
+  // Get all of the message values.
   std::vector<float> GetAllMessageValues() const;
 
+  // Add a message to the message vector.
   void AddMessage(Message);
 
+  // Returns the validity of the ToNode (That is, "Does this message go somewhere valid?")
   bool IsValid();
 
+  /////// For debugging //////
+  void OutputMessage(const unsigned int i) const;
+  void OutputAllMessageValues() const;
 private:
 
 };
 
+// Enable the message vector to be written to std::out.
 std::ostream& operator<<(std::ostream& output, const MessageVector &m);
 
 #endif

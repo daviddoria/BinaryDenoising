@@ -27,18 +27,28 @@ public:
 
   UpdateSchedule();
 
+  // Return a reference to the next message vector to process.
   virtual MessageVector& NextMessage() = 0;
+
+  // Once all of the properties have been set, initialize the schedule.
   virtual void Initialize() = 0;
 
+  // Give the schedule access to the MRF.
   void SetNodeImage(NodeImageType::Pointer);
 
+  // Determine of the algorithm has converged or reached a stopping condition.
   virtual bool IsFinished() = 0;
+
+  // Specify how many passes over the entire image should be performed.
   void SetNumberOfPasses(unsigned int passes);
 
 protected:
+
+  // The schedule must have a pointer to the node image.
   NodeImageType::Pointer NodeImage;
-  bool Finished;
+
   unsigned int NumberOfPasses;
+
 };
 
 #endif

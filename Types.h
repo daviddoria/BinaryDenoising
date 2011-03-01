@@ -22,7 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "Node.h"
 
-//typedef itk::Image< bool, 2> BoolImageType;
 typedef itk::Image< int, 2> IntImageType;
 typedef itk::Image< float, 2> FloatImageType;
 typedef itk::Image< unsigned char, 2> UnsignedCharImageType;

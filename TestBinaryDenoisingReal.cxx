@@ -46,17 +46,14 @@ int main(int argc, char *argv[])
 
   binaryDenoising.SetScheduleToRandomUnique();
 
-  //binaryDenoising.SetUpdateToSumProduct();
+  binaryDenoising.SetUpdateToSumProduct();
   //binaryDenoising.SetUpdateToMaxProduct();
-  binaryDenoising.SetUpdateToMinSum();
+  //binaryDenoising.SetUpdateToMinSum();
   //binaryDenoising.SetUpdateToMaxSum();
-  //binaryDenoising.SetBinaryPenalty(1.);
 
   binaryDenoising.SetBinaryPenalty(1.);
-
   binaryDenoising.CreateAndInitializeMessages(1.0);
-
-  binaryDenoising.SetNumberOfPasses(20);
+  binaryDenoising.SetNumberOfPasses(2);
   binaryDenoising.Initialize();
 
   while(!binaryDenoising.IsFinished())

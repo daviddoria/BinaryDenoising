@@ -20,12 +20,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 UpdateSchedule::UpdateSchedule()
 {
   this->NodeImage = NULL;
-  this->Finished = false;
 }
 
 void UpdateSchedule::SetNodeImage(NodeImageType::Pointer image)
 {
-  this->NodeImage = image; // This must not be copied, but rather the pointer assigned. That is because UpdateSchedule subclasses return pixels of the OutgoingMessageImage by reference, and we want these to be identical to the pixels in the OutgoingMessageImage of the LoopyBP subclass's OutgoingMessageImage
+  // The node image must not be copied, but rather the pointer assigned.
+  // That is because UpdateSchedule subclasses return pixels of the OutgoingMessageImage
+  // by reference, and we want these to be identical to the pixels in the OutgoingMessageImage
+  // of the LoopyBP subclass's OutgoingMessageImage
+  this->NodeImage = image;
 }
 
 

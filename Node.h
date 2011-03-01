@@ -22,20 +22,39 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <vector>
 
+/*
+ * This class represents a node of the MRF.
+ * It stores all outgoing messages to valid neighbors.
+ */
+
 class Node
 {
 public:
+
   Node();
+
+  // Set all message vectors originating at this node.
   void SetOutgoingMessages(std::vector<MessageVector>);
+
+  // Get all message vectors originating at this node.
   std::vector<MessageVector>& GetOutgoingMessageVectors();
+
+  // Get the message vector to the ith neighbor.
   MessageVector& GetOutgoingMessageVector(unsigned int);
+
+  // Determine how many neighbors the node has. All neighbors may not be valid (check the DestinationNode of the message to the neighbor).
   unsigned int GetNumberOfNeighbors() const;
 
+  // Set the location of the node in the image.
   void SetGridIndex(itk::Index<2>);
+
+  // Get the location of the node in the image.
   itk::Index<2> GetGridIndex() const;
 
 private:
+
   std::vector<MessageVector> OutgoingMessages;
+
   itk::Index<2> GridIndex;
 };
 

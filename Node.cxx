@@ -29,7 +29,6 @@ void Node::SetOutgoingMessages(std::vector<MessageVector> messages)
 
 unsigned int Node::GetNumberOfNeighbors() const
 {
-  //std::cout << "There are " << this->OutgoingMessages.size() << " neighbors." << std::endl;
   return this->OutgoingMessages.size();
 }
 
